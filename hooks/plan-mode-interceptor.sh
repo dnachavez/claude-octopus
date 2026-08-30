@@ -43,8 +43,10 @@ Plans must include test creation before implementation steps. If the plan
 has "implement X" without a preceding "write failing test for X", revise it.
 
 ### 3. Intent Contract
-If a session intent contract exists at .claude/session-intent.md, read it
-before finalizing the plan. The plan must align with:
+If a session intent contract exists at the resolved plan directory's
+session-intent.md (see /octo:plan's Resolve Plan Storage Location step —
+never assume a bare .claude/session-intent.md outside a real project), read
+it before finalizing the plan. The plan must align with:
 - Success criteria defined in the contract
 - Boundaries and constraints
 - Stakeholder requirements
@@ -60,8 +62,8 @@ Do NOT plan to auto-invoke these skills — they require explicit user invocatio
 If the user invoked `/octo:plan` (or any octo planning workflow such as
 `/octo:embrace`) while plan mode is active, plan mode's write restriction
 BLOCKS octo from saving its planning artifacts:
-  - .claude/session-intent.md  (intent contract)
-  - .claude/session-plan.md    (weighted-phase plan)
+  - session-intent.md  (intent contract)
+  - session-plan.md    (weighted-phase plan)
   - provider block and phase visualization files
 
 DO NOT silently fall through to generic native planning. You MUST:
@@ -71,7 +73,7 @@ DO NOT silently fall through to generic native planning. You MUST:
    ⚠️  OCTO PLAN DEGRADED — Plan Mode Write Conflict
 
    Native plan mode is active. Octo cannot save its planning artifacts
-   (.claude/session-intent.md, .claude/session-plan.md) while plan mode
+   (session-intent.md, session-plan.md) while plan mode
    restricts writes. You are getting display-only output — this is NOT
    a full octo multi-provider plan.
 

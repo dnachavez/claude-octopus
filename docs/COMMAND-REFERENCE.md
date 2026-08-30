@@ -529,7 +529,7 @@ Intelligent plan builder — creates strategic execution plans without executing
 **What it does:**
 - Captures comprehensive intent via 5 structured questions (goal, knowledge level, constraints, timeline, success criteria)
 - Analyzes requirements and generates a weighted execution strategy
-- Saves plan to `.claude/session-plan.md` and intent contract to `.claude/session-intent.md`
+- Saves plan and intent contract under a resolved plan directory — a project's `.claude/`, or an octo-owned `~/.claude-octopus/sessions/<id>/plans/` directory when run outside a project (never a bare `.claude/` reached by accident, e.g. from `$HOME`)
 - Offers to execute immediately with `/octo:embrace` or save for later
 
 **Aliases:** `build-plan`, `intent`
@@ -801,7 +801,7 @@ Two-stage review pipeline: spec compliance then code quality.
 ```
 
 **Stages:**
-1. **Stage 1 — Spec Compliance**: Validates against intent contract (`.claude/session-intent.md`)
+1. **Stage 1 — Spec Compliance**: Validates against intent contract (resolved plan directory's `session-intent.md`; see `/octo:plan`)
 2. **Gate check**: Stage 1 must pass before Stage 2 runs
 3. **Stage 2 — Code Quality**: Stub detection and quality review
 4. **Combined report**: Unified verdict with PR comment posting when applicable
