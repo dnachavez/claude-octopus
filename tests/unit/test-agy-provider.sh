@@ -1021,12 +1021,15 @@ test_agy_doctor_catalog_timeout_is_bounded() {
     local parent_pid_marker="$TEST_TMP_DIR/agy-doctor-timeout.parent-pid"
     local child_pid_marker="$TEST_TMP_DIR/agy-doctor-timeout.child-pid"
     local mutation_bash_env="$TEST_TMP_DIR/agy-doctor-timeout-unbounded.bashenv"
+    local doctor_path="$tmp_bin:/usr/bin:/bin"
     # Two seconds leaves room for a loaded macOS runner to start the fixture
     # and publish both PIDs before the portable helper hard-kills the group.
     local probe_timeout_secs=2
     local timeout_upper_ms=$((probe_timeout_secs * 1000 + 14000))
     local output="" started_ms elapsed_ms doctor_rc=0
     local parent_pid="" child_pid="" parent_alive="no" child_alive="no"
+    local timeout_runner="" timeout_runner_path="" expected_timeout_rc=0
+    local poll_attempt=0
     mkdir -p "$tmp_bin" "$tmp_home"
     cat > "$tmp_bin/agy" <<'MOCK_AGY'
 #!/usr/bin/env bash
@@ -1058,6 +1061,27 @@ _octo_run_bare_probe_with_timeout() {
 }
 UNBOUNDED_BASH_ENV
 
+    # The fixture PATH selects GNU timeout on Ubuntu and the Perl fallback on
+    # macOS. Measure an external runner's hard-kill status instead of assuming
+    # that every timeout implementation reports it alike.
+    if timeout_runner_path="$(PATH="$doctor_path" command -v gtimeout 2>/dev/null)"; then
+        timeout_runner="gtimeout:$timeout_runner_path"
+    elif timeout_runner_path="$(PATH="$doctor_path" command -v timeout 2>/dev/null)"; then
+        timeout_runner="timeout:$timeout_runner_path"
+    elif PATH="$doctor_path" command -v setsid >/dev/null 2>&1; then
+        timeout_runner="portable-setsid"
+        expected_timeout_rc=137
+    elif PATH="$doctor_path" command -v perl >/dev/null 2>&1; then
+        timeout_runner="portable-perl"
+        expected_timeout_rc=137
+    else
+        timeout_runner="unavailable"
+    fi
+    if [[ -n "$timeout_runner_path" ]]; then
+        /bin/bash -c '"$1" -s KILL 1 /bin/sleep 20 >/dev/null 2>&1' \
+            _ "$timeout_runner_path" >/dev/null 2>&1 || expected_timeout_rc=$?
+    fi
+
     started_ms="$(python3 -c 'import time; print(int(time.monotonic() * 1000))')"
     output="$(
         HOME="$tmp_home" \
@@ -1071,32 +1095,43 @@ UNBOUNDED_BASH_ENV
         AGY_DOCTOR_TIMEOUT_CHILD_PID="$child_pid_marker" \
         BASH_ENV="$([[ "${OCTOPUS_TEST_AGY_DOCTOR_UNBOUNDED:-0}" == "1" ]] && \
             printf '%s' "$mutation_bash_env")" \
-        PATH="$tmp_bin:/usr/bin:/bin" \
+        PATH="$doctor_path" \
             bash "$PROJECT_ROOT/scripts/doctor.sh" providers --live --json
     )" || doctor_rc=$?
     elapsed_ms=$(( $(python3 -c 'import time; print(int(time.monotonic() * 1000))') - started_ms ))
 
     parent_pid="$(cat "$parent_pid_marker" 2>/dev/null || true)"
     child_pid="$(cat "$child_pid_marker" 2>/dev/null || true)"
-    if [[ -n "$parent_pid" ]] && kill -0 "$parent_pid" 2>/dev/null; then
-        parent_alive="yes"
-        kill -KILL "$parent_pid" 2>/dev/null || true
-    fi
-    if [[ -n "$child_pid" ]] && kill -0 "$child_pid" 2>/dev/null; then
-        child_alive="yes"
-        kill -KILL "$child_pid" 2>/dev/null || true
-    fi
+
+    # A killed descendant can remain briefly visible as a reparented zombie.
+    # Give the host init process a bounded chance to reap it before diagnosing
+    # a leak. The final checks still kill any genuinely surviving fixture.
+    for ((poll_attempt = 0; poll_attempt < 20; poll_attempt++)); do
+        parent_alive="no"
+        child_alive="no"
+        if [[ -n "$parent_pid" ]] && kill -0 "$parent_pid" 2>/dev/null; then
+            parent_alive="yes"
+        fi
+        if [[ -n "$child_pid" ]] && kill -0 "$child_pid" 2>/dev/null; then
+            child_alive="yes"
+        fi
+        [[ "$parent_alive" == "no" && "$child_alive" == "no" ]] && break
+        /bin/sleep 0.1
+    done
+    [[ "$parent_alive" == "yes" ]] && kill -KILL "$parent_pid" 2>/dev/null || true
+    [[ "$child_alive" == "yes" ]] && kill -KILL "$child_pid" 2>/dev/null || true
 
     if [[ "$doctor_rc" -eq 0 && -e "$started_marker" && ! -e "$completed_marker" && \
           -n "$parent_pid" && -n "$child_pid" && \
           "$parent_alive" == "no" && "$child_alive" == "no" && \
+          ( "$expected_timeout_rc" -eq 124 || "$expected_timeout_rc" -eq 137 ) && \
           "$elapsed_ms" -lt "$timeout_upper_ms" ]] && \
-       jq -e '
+       jq -e --arg timeout_exit "exit $expected_timeout_rc" '
            .summary.exit_code == 0 and
            ([.results[] | select(
                .name == "agy-live-catalog" and
                .status == "warn" and
-               (.message | contains("exit 137"))
+               (.message | contains($timeout_exit))
            )] | length) == 1 and
            ([.results[] | select(
                .name == "agy-live-model" or .name == "agy-live-dispatch"
@@ -1104,7 +1139,7 @@ UNBOUNDED_BASH_ENV
        ' <<< "$output" >/dev/null; then
         test_pass
     else
-        test_fail "stalled AGY catalog did not time out cleanly: rc=$doctor_rc elapsed=${elapsed_ms}ms upper=${timeout_upper_ms}ms started=$([[ -e "$started_marker" ]] && echo yes || echo no) completed=$([[ -e "$completed_marker" ]] && echo yes || echo no) parent_pid=${parent_pid:-missing} parent_alive=$parent_alive child_pid=${child_pid:-missing} child_alive=$child_alive output=$output"
+        test_fail "stalled AGY catalog did not time out cleanly: rc=$doctor_rc runner=$timeout_runner expected_timeout_rc=$expected_timeout_rc elapsed=${elapsed_ms}ms upper=${timeout_upper_ms}ms started=$([[ -e "$started_marker" ]] && echo yes || echo no) completed=$([[ -e "$completed_marker" ]] && echo yes || echo no) parent_pid=${parent_pid:-missing} parent_alive=$parent_alive child_pid=${child_pid:-missing} child_alive=$child_alive output=$output"
     fi
 }
 
