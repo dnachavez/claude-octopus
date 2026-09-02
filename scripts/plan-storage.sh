@@ -132,9 +132,13 @@ plan_storage_validate_base() {
     printf '%s\n' "$physical_base"
 }
 
-plan_storage_create() {
+plan_storage_cleanup_pointer_tmp() {
+    [[ -z "${pointer_tmp:-}" ]] || rm -f -- "$pointer_tmp"
+}
+
+plan_storage_create() (
     local working_dir="$1" hook_input="$2" home_dir session_id plan_base plan_dir
-    local pointer_file pointer_dir pointer_tmp
+    local pointer_file pointer_dir pointer_tmp=""
 
     home_dir="$(plan_storage_physical_dir "${HOME:?HOME is required}")" || {
         plan_storage_error "HOME is not an accessible directory"
@@ -147,25 +151,35 @@ plan_storage_create() {
     session_id="$(octo_resolve_session_id "shell-${PPID}" "$hook_input")"
     plan_base="$(plan_storage_base_dir "$working_dir" "$home_dir" "$session_id")" || return 1
     plan_base="$(plan_storage_validate_base "$plan_base" "$home_dir" true)" || return 1
-    plan_dir="$(mktemp -d "${plan_base}/plan-$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
 
     pointer_file="$(plan_storage_pointer_file "$home_dir" "$session_id" "$working_dir")"
     pointer_dir="${pointer_file%/*}"
-    mkdir -p "$pointer_dir"
+    pointer_dir="$(plan_storage_validate_base "$pointer_dir" "$home_dir" true)" || return 1
+    pointer_file="$pointer_dir/${pointer_file##*/}"
+
+    plan_dir="$(mktemp -d "${plan_base}/plan-$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
+    trap plan_storage_cleanup_pointer_tmp EXIT
+    trap 'exit 129' HUP
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
     pointer_tmp="$(mktemp "${pointer_file}.tmp.XXXXXX")"
     printf '%s\n%s\n' "$working_dir" "$plan_dir" > "$pointer_tmp"
     mv "$pointer_tmp" "$pointer_file"
+    pointer_tmp=""
     printf '%s\n' "$plan_dir"
-}
+)
 
 plan_storage_current() {
-    local working_dir="$1" hook_input="$2" home_dir session_id pointer_file
+    local working_dir="$1" hook_input="$2" home_dir session_id pointer_file pointer_dir
     local recorded_working_dir="" plan_dir="" plan_base physical_plan_dir
 
     home_dir="$(plan_storage_physical_dir "${HOME:?HOME is required}")" || return 1
     working_dir="$(plan_storage_physical_dir "$working_dir")" || return 1
     session_id="$(octo_resolve_session_id "shell-${PPID}" "$hook_input")"
     pointer_file="$(plan_storage_pointer_file "$home_dir" "$session_id" "$working_dir")"
+    pointer_dir="${pointer_file%/*}"
+    pointer_dir="$(plan_storage_validate_base "$pointer_dir" "$home_dir" false)" || return 1
+    pointer_file="$pointer_dir/${pointer_file##*/}"
     [[ -f "$pointer_file" && ! -L "$pointer_file" ]] || return 1
     IFS= read -r recorded_working_dir < "$pointer_file" || return 1
     IFS= read -r plan_dir < <(sed -n '2p' "$pointer_file") || return 1
