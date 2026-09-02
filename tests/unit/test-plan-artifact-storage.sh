@@ -158,17 +158,44 @@ plan_guard_line="$(awk '/MANDATORY: Detect Plan Mode Write Conflict Before Start
     "$PROJECT_ROOT/commands/plan.md")"
 plan_storage_line="$(awk '/Resolve Plan Storage Location/ { print NR; exit }' \
     "$PROJECT_ROOT/commands/plan.md")"
+plan_provider_line="$(awk '/^### Provider preflight$/ { print NR; exit }' \
+    "$PROJECT_ROOT/commands/plan.md")"
 cursor_guard_line="$(awk '/MANDATORY: Detect Plan Mode Write Conflict Before Starting/ { print NR; exit }' \
     "$PROJECT_ROOT/.cursor-plugin/commands/octo-plan.md")"
 cursor_storage_line="$(awk '/Resolve Plan Storage Location/ { print NR; exit }' \
     "$PROJECT_ROOT/.cursor-plugin/commands/octo-plan.md")"
+cursor_provider_line="$(awk '/^### Provider preflight$/ { print NR; exit }' \
+    "$PROJECT_ROOT/.cursor-plugin/commands/octo-plan.md")"
 if [[ -n "$plan_guard_line" && -n "$plan_storage_line" &&
-      -n "$cursor_guard_line" && -n "$cursor_storage_line" &&
+      -n "$plan_provider_line" && -n "$cursor_guard_line" &&
+      -n "$cursor_storage_line" && -n "$cursor_provider_line" &&
       "$plan_guard_line" -lt "$plan_storage_line" &&
-      "$cursor_guard_line" -lt "$cursor_storage_line" ]]; then
+      "$plan_guard_line" -lt "$plan_provider_line" &&
+      "$cursor_guard_line" -lt "$cursor_storage_line" &&
+      "$cursor_guard_line" -lt "$cursor_provider_line" ]]; then
     test_pass
 else
-    test_fail "one or more plan commands create storage before checking degraded mode"
+    test_fail "one or more plan commands perform setup before checking degraded mode"
+fi
+
+test_case "plan completion messages use bullets and typed text fences"
+completion_contract_failed=false
+for plan_command in \
+    "$PROJECT_ROOT/commands/plan.md" \
+    "$PROJECT_ROOT/.cursor-plugin/commands/octo-plan.md"; do
+    completion_block="$(sed -n '/^- \*\*Show completion message/,/^### Step 6:/p' "$plan_command")"
+    if ! grep -Fq -- '- **Save plan to `${OCTO_PLAN_DIR}/session-plan.md`:**' "$plan_command" ||
+       ! grep -Fq -- '- **Display the plan to the user**' "$plan_command" ||
+       [[ "$completion_block" != *'- **Show completion message with the resolved absolute path:**'* ]] ||
+       [[ "$completion_block" != *'```text'* ]]; then
+        completion_contract_failed=true
+        break
+    fi
+done
+if [[ "$completion_contract_failed" == "false" ]]; then
+    test_pass
+else
+    test_fail "one or more plan completion sections regressed its Markdown structure"
 fi
 
 test_case "plan examples do not advertise the obsolete project .claude path"
