@@ -529,7 +529,7 @@ Intelligent plan builder — creates strategic execution plans without executing
 **What it does:**
 - Captures comprehensive intent via 5 structured questions (goal, knowledge level, constraints, timeline, success criteria)
 - Analyzes requirements and generates a weighted execution strategy
-- Saves plan and intent contract under a resolved plan directory — a project's `.claude/`, or an octo-owned `~/.claude-octopus/sessions/<id>/plans/` directory when run outside a project (never a bare `.claude/` reached by accident, e.g. from `$HOME`)
+- Saves every plan and intent contract to a unique resolved run directory: `<project-root>/.octo/plans/<run-id>/` in a project, or `~/.claude-octopus/sessions/<session-id>/plans/<run-id>/` elsewhere. It never writes loose artifacts into `~/.claude/`.
 - Offers to execute immediately with `/octo:embrace` or save for later
 
 **Aliases:** `build-plan`, `intent`

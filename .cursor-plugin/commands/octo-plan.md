@@ -10,7 +10,7 @@ disable-model-invocation: true
 ## Key Behavior
 
 - **Creates plans** - Captures intent, analyzes requirements, generates weighted execution strategy
-- **Saves to files** - Stores plan (`session-plan.md`) and intent contract (`session-intent.md`) under a resolved plan directory — a project's `.claude/`, or an octo-owned session directory when there is no project (see Resolve Plan Storage Location below); never a bare `.claude/` reached by accident
+- **Saves to files** - Stores each plan and intent contract in a unique run directory under the project-owned `.octo/plans/` namespace, or under octo-owned session storage when there is no project
 - **Doesn't execute** - Plans are saved for review; execution requires user confirmation
 - **Optional execution** - Can load `/octo:embrace` after explicit user approval or execute later
 
@@ -18,24 +18,20 @@ disable-model-invocation: true
 
 ### Resolve Plan Storage Location (run first, before anything else)
 
-**Every other step in this command reads or writes `${OCTO_PLAN_DIR}/session-intent.md` and `${OCTO_PLAN_DIR}/session-plan.md`. Never substitute a bare `.claude/session-intent.md` or `.claude/session-plan.md` literal — resolve `OCTO_PLAN_DIR` first, exactly once, with this check:**
+**Every other step in this command reads or writes `${OCTO_PLAN_DIR}/session-intent.md` and `${OCTO_PLAN_DIR}/session-plan.md`. Never substitute a bare `.claude/session-intent.md` or `.claude/session-plan.md` literal. Resolve one unique run directory before creating either artifact:**
 
 ```bash
-if project_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
-  OCTO_PLAN_DIR="${project_root}/.claude"
-elif [[ "$PWD" != "$HOME" ]] && { [[ -f package.json ]] || [[ -f pyproject.toml ]] || [[ -f go.mod ]] || [[ -f Cargo.toml ]] || [[ -f Gemfile ]]; }; then
-  OCTO_PLAN_DIR="${PWD}/.claude"
-else
-  "${CLAUDE_PLUGIN_ROOT}/scripts/session-manager.sh" export >/dev/null 2>&1 || true
-  OCTO_PLAN_DIR="${OCTOPUS_SESSION_PLANS:-${HOME}/.claude-octopus/sessions/octopus-$(date +%s)/plans}"
-fi
-mkdir -p "$OCTO_PLAN_DIR"
+PLAN_STORAGE="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}/scripts/plan-storage.sh"
+OCTO_PLAN_DIR="$("$PLAN_STORAGE" create "$PWD")" || {
+  echo "Unable to resolve safe plan artifact storage" >&2
+  exit 1
+}
 echo "Plan artifacts will be saved to: ${OCTO_PLAN_DIR}"
 ```
 
-This never writes into `~/.claude/` unless `$HOME` is itself a git work tree or contains a project marker file. Running `/octo:plan` from `$HOME` (or any other non-project directory) instead lands in `${OCTOPUS_SESSION_PLANS}`, which is namespaced per session id — so two sequential runs from the same non-project directory never overwrite each other's plan.
+The resolver hard-blocks the global `~/.claude/` directory, detects git and marker-file project roots, creates a unique directory for every invocation, and records that directory for the current host session and workspace. Running `/octo:plan` from `$HOME` or another non-project directory uses `~/.claude-octopus/sessions/<session-id>/plans/<run-id>/`. Project runs use `<project-root>/.octo/plans/<run-id>/`.
 
-Report the resolved absolute `$OCTO_PLAN_DIR` (not a literal `.claude/...` string) in every confirmation message shown to the user.
+Keep the absolute path printed by the resolver and use that exact path in every later Read, Write, Edit, and Bash action. If the path must be recovered in a later shell, run `"$PLAN_STORAGE" current "$PWD"`. Report the resolved absolute path, not a relative placeholder, in every confirmation message shown to the user.
 
 ### Provider preflight
 
@@ -468,7 +464,7 @@ AskUserQuestion({
 **If "Multi-LLM debate the plan first":**
 - Read `${HOME}/.claude-octopus/plugin/commands/debate.md` and execute it with the plan as context (Claude plus available providers deliberate):
   - Topic: "Should we proceed with this plan? What are the risks and blind spots?"
-  - `--rounds 2 --debate-style adversarial --context-file ${OCTO_PLAN_DIR}/session-plan.md`
+  - `--rounds 2 --debate-style adversarial --context-file "${OCTO_PLAN_DIR}/session-plan.md"`
 - After the Multi-LLM debate completes, present the synthesis and return to Step 6
 - If the debate confirms the plan, user can then select "Execute now"
 - If the debate reveals issues, user can select "Adjust plan weights" or "Different approach"

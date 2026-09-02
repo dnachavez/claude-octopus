@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Store `/octo:plan` artifacts in unique, resolved run directories and share
+  that location with plan-mode hooks and review skills, preventing writes into
+  the global `~/.claude/` configuration directory and same-session overwrites.
 - Make review-fleet construction fail closed when the provider allowlist library cannot be loaded, and remove the unused optional cursor-agent library load.
 - Harden Tangle scope and verification safety: keep repository context out of implicit write authorization, share effective-scope resolution between validation and consolidation, verify overlap repair before worker dispatch, and terminate cleanly after INT/TERM verification cleanup while preserving caller traps.
 - Council runs are isolated per session by default. Concurrent governed sessions

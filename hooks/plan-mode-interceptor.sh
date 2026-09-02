@@ -24,6 +24,29 @@ else
 fi
 [[ -z "$INPUT" ]] && INPUT='{}'
 
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}"
+PLAN_STORAGE="${PLUGIN_ROOT}/scripts/plan-storage.sh"
+PLAN_DIR=""
+INTENT_FILE=""
+INTENT_CONTEXT=""
+HOOK_CWD="$PWD"
+payload_cwd=""
+if command -v jq >/dev/null 2>&1; then
+    payload_cwd="$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || true)"
+elif command -v python3 >/dev/null 2>&1; then
+    payload_cwd="$(printf '%s' "$INPUT" | python3 -c 'import json,sys; value=json.load(sys.stdin).get("cwd", ""); print(value if isinstance(value, str) else "")' 2>/dev/null || true)"
+fi
+if [[ -n "$payload_cwd" && -d "$payload_cwd" ]]; then
+    HOOK_CWD="$(cd "$payload_cwd" && pwd -P)"
+fi
+if [[ -x "$PLAN_STORAGE" ]]; then
+    PLAN_DIR="$("$PLAN_STORAGE" current "$HOOK_CWD" "$INPUT" 2>/dev/null || true)"
+fi
+if [[ -n "$PLAN_DIR" && -f "$PLAN_DIR/session-intent.md" ]]; then
+    INTENT_FILE="$PLAN_DIR/session-intent.md"
+    INTENT_CONTEXT="$(head -c 32768 "$INTENT_FILE" 2>/dev/null || true)"
+fi
+
 # Build planning-relevant enforcement context
 read -r -d '' CONTEXT <<'RULES' || true
 <PLAN-MODE-RULES source="🐙 Octopus">
@@ -89,6 +112,14 @@ DO NOT silently fall through to generic native planning. You MUST:
 4. Repeat the re-run reminder at the end of Step 6.
 </PLAN-MODE-RULES>
 RULES
+
+if [[ -n "$INTENT_FILE" ]]; then
+    CONTEXT="${CONTEXT}
+
+<INTENT-CONTRACT path=\"${INTENT_FILE}\">
+${INTENT_CONTEXT}
+</INTENT-CONTRACT>"
+fi
 
 # Escape the context for JSON output
 ESCAPED_CONTEXT=$(echo "$CONTEXT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null | sed 's/^"//;s/"$//')
