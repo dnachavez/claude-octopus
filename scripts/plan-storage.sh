@@ -98,6 +98,12 @@ plan_storage_validate_base() {
         return 1
     }
     case "$plan_base" in
+        */../*|*/..|*/./*|*/.)
+            plan_storage_error "plan storage paths cannot contain dot components"
+            return 1
+            ;;
+    esac
+    case "$plan_base" in
         "$home_dir/.claude"|"$home_dir/.claude/"*)
             plan_storage_error "plan storage cannot use the global Claude config directory"
             return 1

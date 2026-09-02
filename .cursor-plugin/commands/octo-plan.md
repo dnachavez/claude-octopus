@@ -523,7 +523,7 @@ DELIVER ██████████ 25%
 
 "You'll get: Comprehensive research report with recommendations"
 
-✅ Plan saved to /path/to/project/.claude/session-plan.md
+✅ Plan saved to /path/to/project/.octo/plans/plan-20260902T120000Z.a1b2c3/session-plan.md
 
 To execute this plan, run:
   /octo:embrace "research topic X"

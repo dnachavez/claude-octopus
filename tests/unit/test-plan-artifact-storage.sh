@@ -110,11 +110,23 @@ else
     test_pass
 fi
 
+test_case "configured roots cannot reach global Claude config through dot-dot traversal"
+mkdir -p "$test_home/work"
+if HOME="$test_home" OCTOPUS_SESSION_PLANS="$test_home/work/../.claude/plans" \
+    CLAUDE_CODE_SESSION_ID="bad-traversal-root" "$RESOLVER" create "$case_root" >/dev/null 2>&1; then
+    test_fail "dot-dot traversal into global Claude config was accepted"
+elif [[ -e "$test_home/.claude/plans" ]]; then
+    test_fail "rejected dot-dot storage still created a global config directory"
+else
+    test_pass
+fi
+
 test_case "plan-mode hook loads the latest intent contract from the shared resolver"
 printf '%s\n' "unique intent contract body" > "$home_plan_dir_2/session-intent.md"
-hook_output="$(cd "$case_root" && HOME="$test_home" CLAUDE_CODE_SESSION_ID="" \
+hook_output="$(cd "$case_root" && \
     printf '%s' '{"session_id":"home-session","cwd":"'"$test_home"'"}' | \
-    HOME="$test_home" CLAUDE_PLUGIN_ROOT="$PROJECT_ROOT" "$HOOK")"
+    HOME="$test_home" CLAUDE_CODE_SESSION_ID="" CLAUDE_SESSION_ID="" \
+    CLAUDE_CODE_SESSION="" CLAUDE_PLUGIN_ROOT="$PROJECT_ROOT" "$HOOK")"
 if [[ "$hook_output" == *"$home_plan_dir_2/session-intent.md"* &&
       "$hook_output" == *"unique intent contract body"* ]]; then
     test_pass
@@ -129,6 +141,13 @@ if grep -q 'scripts/plan-storage.sh' "$PROJECT_ROOT/commands/plan.md" &&
     test_pass
 else
     test_fail "one or more plan consumers bypass the shared resolver"
+fi
+
+test_case "plan examples do not advertise the obsolete project .claude path"
+if grep -q '/path/to/project/.claude/session-plan.md' "$PROJECT_ROOT/commands/plan.md"; then
+    test_fail "plan example still reports the obsolete project .claude path"
+else
+    test_pass
 fi
 
 test_summary
