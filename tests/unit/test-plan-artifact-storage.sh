@@ -10,8 +10,8 @@ test_suite "Plan artifact storage"
 RESOLVER="$PROJECT_ROOT/scripts/plan-storage.sh"
 HOOK="$PROJECT_ROOT/hooks/plan-mode-interceptor.sh"
 
-case_root="$(mktemp -d "${TMPDIR:-/tmp}/octo-plan-storage.XXXXXX")"
-trap 'rm -rf "$case_root"' EXIT
+case_root="$TEST_TMP_DIR/plan-artifact-storage"
+mkdir -p "$case_root"
 test_home="$case_root/home"
 mkdir -p "$test_home"
 test_home="$(cd "$test_home" && pwd -P)"
@@ -110,6 +110,16 @@ else
     test_pass
 fi
 
+test_case "configured roots reject redundant separators before directory creation"
+if HOME="$test_home" OCTOPUS_SESSION_PLANS="$test_home//.claude/plans" \
+    CLAUDE_CODE_SESSION_ID="bad-empty-component-root" "$RESOLVER" create "$case_root" >/dev/null 2>&1; then
+    test_fail "storage root with an empty path component was accepted"
+elif [[ -e "$test_home/.claude/plans" ]]; then
+    test_fail "rejected storage still created a directory in global Claude config"
+else
+    test_pass
+fi
+
 test_case "configured roots cannot reach global Claude config through dot-dot traversal"
 mkdir -p "$test_home/work"
 if HOME="$test_home" OCTOPUS_SESSION_PLANS="$test_home/work/../.claude/plans" \
@@ -141,6 +151,24 @@ if grep -q 'scripts/plan-storage.sh' "$PROJECT_ROOT/commands/plan.md" &&
     test_pass
 else
     test_fail "one or more plan consumers bypass the shared resolver"
+fi
+
+test_case "plan commands check degraded plan mode before creating storage"
+plan_guard_line="$(awk '/MANDATORY: Detect Plan Mode Write Conflict Before Starting/ { print NR; exit }' \
+    "$PROJECT_ROOT/commands/plan.md")"
+plan_storage_line="$(awk '/Resolve Plan Storage Location/ { print NR; exit }' \
+    "$PROJECT_ROOT/commands/plan.md")"
+cursor_guard_line="$(awk '/MANDATORY: Detect Plan Mode Write Conflict Before Starting/ { print NR; exit }' \
+    "$PROJECT_ROOT/.cursor-plugin/commands/octo-plan.md")"
+cursor_storage_line="$(awk '/Resolve Plan Storage Location/ { print NR; exit }' \
+    "$PROJECT_ROOT/.cursor-plugin/commands/octo-plan.md")"
+if [[ -n "$plan_guard_line" && -n "$plan_storage_line" &&
+      -n "$cursor_guard_line" && -n "$cursor_storage_line" &&
+      "$plan_guard_line" -lt "$plan_storage_line" &&
+      "$cursor_guard_line" -lt "$cursor_storage_line" ]]; then
+    test_pass
+else
+    test_fail "one or more plan commands create storage before checking degraded mode"
 fi
 
 test_case "plan examples do not advertise the obsolete project .claude path"

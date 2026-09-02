@@ -20,45 +20,6 @@ aliases:
 
 ## 🤖 INSTRUCTIONS FOR CLAUDE
 
-### Resolve Plan Storage Location (run first, before anything else)
-
-**Every other step in this command reads or writes `${OCTO_PLAN_DIR}/session-intent.md` and `${OCTO_PLAN_DIR}/session-plan.md`. Never substitute a bare `.claude/session-intent.md` or `.claude/session-plan.md` literal. Resolve one unique run directory before creating either artifact:**
-
-```bash
-PLAN_STORAGE="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}/scripts/plan-storage.sh"
-OCTO_PLAN_DIR="$("$PLAN_STORAGE" create "$PWD")" || {
-  echo "Unable to resolve safe plan artifact storage" >&2
-  exit 1
-}
-echo "Plan artifacts will be saved to: ${OCTO_PLAN_DIR}"
-```
-
-The resolver hard-blocks the global `~/.claude/` directory, detects git and marker-file project roots, creates a unique directory for every invocation, and records that directory for the current host session and workspace. Running `/octo:plan` from `$HOME` or another non-project directory uses `~/.claude-octopus/sessions/<session-id>/plans/<run-id>/`. Project runs use `<project-root>/.octo/plans/<run-id>/`.
-
-Keep the absolute path printed by the resolver and use that exact path in every later Read, Write, Edit, and Bash action. If the path must be recovered in a later shell, run `"$PLAN_STORAGE" current "$PWD"`. Report the resolved absolute path, not a relative placeholder, in every confirmation message shown to the user.
-
-### Provider preflight
-
-Before launching any Codex or other provider-backed planning seat, capture one
-authoritative status snapshot and retain it for the later visualization:
-
-```bash
-OCTO_ROOT="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}"
-provider_helper="$OCTO_ROOT/scripts/helpers/check-providers.sh"
-if [[ ! -x "$provider_helper" ]]; then
-  echo "Claude Octopus provider readiness helper is unavailable; planning in Claude-only mode." >&2
-  PROVIDER_STATUS=""
-else
-  PROVIDER_STATUS="$("$provider_helper" 2>/dev/null || true)"
-fi
-printf '%s\n' "$PROVIDER_STATUS"
-```
-
-If the selected provider is unavailable or unauthenticated, keep the plan in
-Claude-only mode, name the failed preflight, and offer `/octo:setup` or
-`/octo:skill-doctor` as the recovery path. Do not describe an unstarted
-provider seat as completed.
-
 ### MANDATORY: Detect Plan Mode Write Conflict Before Starting
 
 **THIS CHECK RUNS FIRST — before intent capture, before any artifact write.**
@@ -97,6 +58,49 @@ plan instead of a full octo multi-provider plan.
 /octo:plan deliberately. A visible degradation warning is mandatory.**
 
 ---
+
+### Resolve Plan Storage Location
+
+**After confirming native plan mode is not active, resolve one unique run
+directory before creating either artifact. Every other step in this command
+reads or writes `${OCTO_PLAN_DIR}/session-intent.md` and
+`${OCTO_PLAN_DIR}/session-plan.md`. Never substitute a bare
+`.claude/session-intent.md` or `.claude/session-plan.md` literal:**
+
+```bash
+PLAN_STORAGE="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}/scripts/plan-storage.sh"
+OCTO_PLAN_DIR="$("$PLAN_STORAGE" create "$PWD")" || {
+  echo "Unable to resolve safe plan artifact storage" >&2
+  exit 1
+}
+echo "Plan artifacts will be saved to: ${OCTO_PLAN_DIR}"
+```
+
+The resolver hard-blocks the global `~/.claude/` directory, detects git and marker-file project roots, creates a unique directory for every invocation, and records that directory for the current host session and workspace. Running `/octo:plan` from `$HOME` or another non-project directory uses `~/.claude-octopus/sessions/<session-id>/plans/<run-id>/`. Project runs use `<project-root>/.octo/plans/<run-id>/`.
+
+Keep the absolute path printed by the resolver and use that exact path in every later Read, Write, Edit, and Bash action. If the path must be recovered in a later shell, run `"$PLAN_STORAGE" current "$PWD"`. Report the resolved absolute path, not a relative placeholder, in every confirmation message shown to the user.
+
+### Provider preflight
+
+Before launching any Codex or other provider-backed planning seat, capture one
+authoritative status snapshot and retain it for the later visualization:
+
+```bash
+OCTO_ROOT="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}"
+provider_helper="$OCTO_ROOT/scripts/helpers/check-providers.sh"
+if [[ ! -x "$provider_helper" ]]; then
+  echo "Claude Octopus provider readiness helper is unavailable; planning in Claude-only mode." >&2
+  PROVIDER_STATUS=""
+else
+  PROVIDER_STATUS="$("$provider_helper" 2>/dev/null || true)"
+fi
+printf '%s\n' "$PROVIDER_STATUS"
+```
+
+If the selected provider is unavailable or unauthenticated, keep the plan in
+Claude-only mode, name the failed preflight, and offer `/octo:setup` or
+`/octo:skill-doctor` as the recovery path. Do not describe an unstarted
+provider seat as completed.
 
 ### MANDATORY COMPLIANCE — DO NOT SKIP
 
@@ -369,7 +373,7 @@ status other than `available` cannot be displayed as a completed provider seat.
 
 **CRITICAL: The plan command creates plans, it does NOT execute them by default.**
 
-1. **Save plan to `${OCTO_PLAN_DIR}/session-plan.md`:**
+- **Save plan to `${OCTO_PLAN_DIR}/session-plan.md`:**
 
 ```markdown
 # Session Plan
@@ -412,11 +416,11 @@ Or execute phases individually:
 3. Execute with /octo:embrace when ready
 ```
 
-2. **Display the plan to the user** (same visualization as before)
+- **Display the plan to the user** (same visualization as before)
 
-3. **Show completion message with the resolved absolute path:**
+- **Show completion message with the resolved absolute path:**
 
-```
+```text
 ✅ Plan saved to [resolved OCTO_PLAN_DIR]/session-plan.md
 
 To execute this plan, run:
