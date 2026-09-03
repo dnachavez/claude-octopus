@@ -7,10 +7,45 @@ source "$SCRIPT_DIR/../helpers/test-framework.sh"
 test_suite "Setup path to first success"
 
 SETUP="$PROJECT_ROOT/commands/setup.md"
+CURSOR_SETUP="$PROJECT_ROOT/.cursor-plugin/commands/octo-setup.md"
 setup_text="$(cat "$SETUP")"
 default_path="$(sed -n '/^## Default path/,/^## Advanced setup/p' "$SETUP")"
 advanced_path="$(sed -n '/^## Advanced setup/,$p' "$SETUP")"
 readiness_step="$(sed -n '/^### 2\. Show shared readiness/,/^### 3\./p' "$SETUP")"
+
+test_case "setup accepts a readable non-executable preflight helper"
+root_guard_ok=true
+fixture_root="$TEST_TMP_DIR/plugin root"
+fixture_home="$TEST_TMP_DIR/home"
+mkdir -p "$fixture_root/scripts/helpers" "$fixture_home"
+: > "$fixture_root/scripts/helpers/preflight.sh"
+chmod 0644 "$fixture_root/scripts/helpers/preflight.sh"
+for setup_command in "$SETUP" "$CURSOR_SETUP"; do
+    resolve_block="$(awk '
+      /^### 1\. Resolve the installed plugin$/ {in_step=1; next}
+      in_step && /^```bash$/ {in_fence=1; next}
+      in_step && in_fence && /^```$/ {exit}
+      in_step && in_fence {print}
+    ' "$setup_command")"
+    resolved_root="$(
+      CLAUDE_PLUGIN_ROOT="$fixture_root" \
+      HOME="$fixture_home" \
+      LOCALAPPDATA="$TEST_TMP_DIR/local-app-data" \
+      XDG_DATA_HOME="$TEST_TMP_DIR/xdg-data" \
+        bash -c "$resolve_block"$'\n''printf "%s\n" "$OCTO_ROOT"'
+    )" || root_guard_ok=false
+    if [[ "$resolved_root" != "$fixture_root" ]] ||
+       grep -Eq '\[\[[^]]*-x[^]]*scripts/helpers/preflight\.sh' "$setup_command" ||
+       [[ "$(grep -Ec '\[\[[^]]*-r[^]]*scripts/helpers/preflight\.sh' "$setup_command" || true)" -ne 3 ]] ||
+       ! grep -Fq 'bash "${OCTO_ROOT}/scripts/helpers/preflight.sh" --json' "$setup_command"; then
+        root_guard_ok=false
+    fi
+done
+if [[ "$root_guard_ok" == true ]]; then
+    test_pass
+else
+    test_fail "setup still requires the bash-invoked preflight helper to be executable"
+fi
 
 test_case "initial setup renders the shared static readiness contract once"
 if [[ "$(grep -c 'scripts/helpers/preflight.sh.*--json' <<<"$readiness_step" || true)" -eq 1 ]] &&

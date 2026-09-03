@@ -32,13 +32,13 @@ made a choice.
 
 ```bash
 OCTO_ROOT="${CLAUDE_PLUGIN_ROOT:-}"
-if [[ ! -x "$OCTO_ROOT/scripts/helpers/preflight.sh" ]]; then
+if [[ ! -r "$OCTO_ROOT/scripts/helpers/preflight.sh" ]]; then
   OCTO_ROOT="${HOME}/.claude-octopus/plugin"
 fi
-if [[ ! -x "$OCTO_ROOT/scripts/helpers/preflight.sh" ]]; then
+if [[ ! -r "$OCTO_ROOT/scripts/helpers/preflight.sh" ]]; then
   OCTO_ROOT="$(find "${HOME}/.claude/plugins/cache" "${HOME}/Library/Application Support/Claude" "${LOCALAPPDATA:-/dev/null}/Claude" "${XDG_DATA_HOME:-${HOME}/.local/share}/Claude" -maxdepth 8 -path '*/nyldn-plugins/octo/*/scripts/helpers/preflight.sh' -print -quit 2>/dev/null | sed 's#/scripts/helpers/preflight.sh$##')"
 fi
-[[ -x "$OCTO_ROOT/scripts/helpers/preflight.sh" ]] || {
+[[ -r "$OCTO_ROOT/scripts/helpers/preflight.sh" ]] || {
   echo "Octopus installation not found. Reinstall octo@nyldn-plugins, then run /octo:setup again."
   exit 1
 }
