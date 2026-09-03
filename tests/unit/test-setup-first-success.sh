@@ -28,10 +28,11 @@ for setup_command in "$SETUP" "$CURSOR_SETUP"; do
       in_step && in_fence {print}
     ' "$setup_command")"
     resolved_root="$(
-      CLAUDE_PLUGIN_ROOT="$fixture_root" \
-      HOME="$fixture_home" \
-      LOCALAPPDATA="$TEST_TMP_DIR/local-app-data" \
-      XDG_DATA_HOME="$TEST_TMP_DIR/xdg-data" \
+      env \
+        "CLAUDE_PLUGIN_ROOT=$fixture_root" \
+        "HOME=$fixture_home" \
+        "LOCALAPPDATA=$TEST_TMP_DIR/local-app-data" \
+        "XDG_DATA_HOME=$TEST_TMP_DIR/xdg-data" \
         bash -c "$resolve_block"$'\n''printf "%s\n" "$OCTO_ROOT"'
     )" || root_guard_ok=false
     if [[ "$resolved_root" != "$fixture_root" ]] ||
@@ -45,6 +46,41 @@ if [[ "$root_guard_ok" == true ]]; then
     test_pass
 else
     test_fail "setup still requires the bash-invoked preflight helper to be executable"
+fi
+
+test_case "fallback search skips an unreadable preflight helper"
+fallback_guard_ok=true
+unreadable_root="$fixture_home/.claude/plugins/cache/nyldn-plugins/octo/0.0.0"
+readable_root="$fixture_home/Library/Application Support/Claude/nyldn-plugins/octo/1.0.0"
+mkdir -p "$unreadable_root/scripts/helpers" "$readable_root/scripts/helpers"
+: > "$unreadable_root/scripts/helpers/preflight.sh"
+: > "$readable_root/scripts/helpers/preflight.sh"
+chmod 000 "$unreadable_root/scripts/helpers/preflight.sh"
+chmod 0644 "$readable_root/scripts/helpers/preflight.sh"
+for setup_command in "$SETUP" "$CURSOR_SETUP"; do
+    resolve_block="$(awk '
+      /^### 1\. Resolve the installed plugin$/ {in_step=1; next}
+      in_step && /^```bash$/ {in_fence=1; next}
+      in_step && in_fence && /^```$/ {exit}
+      in_step && in_fence {print}
+    ' "$setup_command")"
+    resolved_root="$(
+      env \
+        "CLAUDE_PLUGIN_ROOT=$TEST_TMP_DIR/missing-active-root" \
+        "HOME=$fixture_home" \
+        "LOCALAPPDATA=$TEST_TMP_DIR/local-app-data" \
+        "XDG_DATA_HOME=$TEST_TMP_DIR/xdg-data" \
+        bash -c "$resolve_block"$'\n''printf "%s\n" "$OCTO_ROOT"'
+    )" || fallback_guard_ok=false
+    if [[ "$resolved_root" != "$readable_root" ]]; then
+        fallback_guard_ok=false
+    fi
+done
+chmod 0644 "$unreadable_root/scripts/helpers/preflight.sh"
+if [[ "$fallback_guard_ok" == true ]]; then
+    test_pass
+else
+    test_fail "fallback search stopped at an unreadable preflight helper"
 fi
 
 test_case "initial setup renders the shared static readiness contract once"
