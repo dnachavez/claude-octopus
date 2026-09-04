@@ -70,6 +70,11 @@ proven safe to remove.
   Expectations updated in registry-contracts, model-metadata-parity,
   usage-report, readme-release-sync, shared-marketplace-sync, and
   agy-provider suites.
+- Delivery: PR [#1001](https://github.com/nyldn/claude-octopus/pull/1001)
+  from fork branch `dnachavez:add-cursor-cli-provider` (remote `fork`,
+  `git@github.com:dnachavez/claude-octopus.git`); `origin` is read-only for
+  this account. Fork PRs stall at `action_required` after every push and
+  need maintainer approval of the workflow run.
 - Tracking: `bd` is not installed in this worktree, so no Beads issue was
   created; this section is the record.
 
