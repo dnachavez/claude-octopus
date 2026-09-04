@@ -103,9 +103,10 @@ qwen, ollama, copilot, vibe, and kimi.
 probe lives in `scripts/lib/cursor-agent.sh` (`cursor_agent_is_available`):
 `CURSOR_API_KEY`, else an `authInfo` block in `~/.cursor/cli-config.json`
 (cheap but not always present), else a bounded (`OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT`, 15s) `agent status
---format json` probe whose yes/no verdict is cached per process and on disk
-under the user cache directory (`~/.cache/claude-octopus/cursor-agent-auth-verdict`,
-TTL 600s; never in the workspace, symlinks refused, atomic replace). Do not re-implement that check in
+--format json` probe whose yes/no verdict is cached per process and on disk.
+The cache path resolves to `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE` when set,
+otherwise `${XDG_CACHE_HOME:-$HOME/.cache}/claude-octopus/cursor-agent-auth-verdict`
+(TTL 600s; never in the workspace, symlinks refused, atomic replace). Do not re-implement that check in
 consumers. Dispatch is read-only by default
 (`--mode ask`; `--mode plan` for planner roles; full agent mode only for
 implementer roles or `OCTOPUS_CURSOR_AGENT_MODE=agent`).

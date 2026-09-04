@@ -35,9 +35,10 @@ proven safe to remove.
   `scripts/lib/cursor-agent.sh` now owns one
   bounded `agent status --format json` probe (network-bound, 3-12s observed;
   `OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT` default 15s) whose verdict is cached
-  per process and in the user cache directory
-  (`~/.cache/claude-octopus/cursor-agent-auth-verdict`, TTL 600s, negative
-  60s, never in the workspace, symlinks refused, atomic replace; the
+  per process and on disk at `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE` when set,
+  otherwise `${XDG_CACHE_HOME:-$HOME/.cache}/claude-octopus/cursor-agent-auth-verdict`
+  (TTL 600s, negative 60s, never in the workspace, symlinks refused, atomic
+  replace; the
   `authInfo` file check still short-circuits); providers, preflight, smoke, model
   resolver, and Embrace call the helper instead of grepping the file. The
   fallback watchdog in `_cursor_agent_run_with_timeout` detaches its stdio so
@@ -78,12 +79,16 @@ proven safe to remove.
   `git diff --check`, and `git diff origin/main...HEAD --summary | grep "mode
   change"` (empty) passed. Focused suites, all passing:
   `bash tests/unit/test-cursor-agent-provider.sh` (33/33),
-  `test-provider-registry-contracts.sh` (15/15), `test-provider-registry-parity.sh`
-  (16/16), `test-provider-neutral-council.sh` (6/6), `test-model-metadata-parity.sh`
-  (6/6), `test-readme-release-sync.sh` (11/11), `test-shared-marketplace-sync.sh`
-  (17/17), `test-env-var-effects.sh` (9/9), `test-agy-provider.sh` (52/52; one
-  earlier run hit a transient 1s mock timeout under concurrent load and passed
-  twice on rerun), `tests/test-fleet-diversity.sh` (42/42). Live, read-only:
+  `bash tests/unit/test-provider-registry-contracts.sh` (15/15),
+  `bash tests/unit/test-provider-registry-parity.sh` (16/16),
+  `bash tests/unit/test-provider-neutral-council.sh` (6/6),
+  `bash tests/unit/test-model-metadata-parity.sh` (6/6),
+  `bash tests/unit/test-readme-release-sync.sh` (11/11),
+  `bash tests/unit/test-shared-marketplace-sync.sh` (17/17),
+  `bash tests/unit/test-env-var-effects.sh` (9/9),
+  `bash tests/unit/test-agy-provider.sh` (52/52; one earlier run hit a
+  transient 1s mock timeout under concurrent load and passed twice on rerun),
+  `bash tests/test-fleet-diversity.sh` (42/42). Live, read-only:
   `scripts/helpers/check-providers.sh` reports `cursor-agent:available` with
   and without `CURSOR_API_KEY`; `bash scripts/helpers/build-fleet.sh review
   standard test` seats cursor-agent; one real dispatch through the exact

@@ -199,7 +199,7 @@ reset_mocks; write_cursor_status_mock
 CALLS_FILE="$TEST_TMP_DIR/status-calls-1.txt"; : > "$CALLS_FILE"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH" CURSOR_STATUS_CALLS="$CALLS_FILE"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
     export CURSOR_MOCK_STATUS_JSON='{"status":"authenticated","isAuthenticated":true,"userInfo":{"email":"secret@example.test"}}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     if cursor_agent_is_available; then
@@ -218,7 +218,7 @@ test_case "unauthenticated agent status leaves Cursor unavailable"
 reset_mocks; write_cursor_status_mock
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}"
     export CURSOR_MOCK_STATUS_JSON='{"status":"unauthenticated","isAuthenticated":false}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     cursor_agent_is_available && echo "available" || echo "unavailable:$(cursor_agent_auth_method)"
@@ -238,7 +238,7 @@ printf '#!/bin/bash\nexec /usr/bin/grep "$@"\n' > "$MOCK_BIN_DIR/grep"; chmod +x
 SECONDS=0
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$MOCK_BIN_DIR"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${MOCK_BIN_DIR}"
     export CURSOR_MOCK_STATUS_SLEEP=5 OCTOPUS_CURSOR_AGENT_PROBE_TIMEOUT=1 OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT=1
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
@@ -255,7 +255,7 @@ reset_mocks; write_cursor_status_mock
 CALLS_FILE="$TEST_TMP_DIR/status-calls-2.txt"; : > "$CALLS_FILE"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH" CURSOR_STATUS_CALLS="$CALLS_FILE"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
     export CURSOR_MOCK_VERSION="1.4.2" CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     cursor_agent_session_authenticated && echo "authenticated" || echo "rejected"
@@ -271,7 +271,7 @@ reset_mocks; write_cursor_status_mock
 CALLS_FILE="$TEST_TMP_DIR/status-calls-3.txt"; : > "$CALLS_FILE"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH" CURSOR_STATUS_CALLS="$CALLS_FILE"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     cursor_agent_is_available && cursor_agent_is_available && cursor_agent_auth_method
@@ -290,7 +290,7 @@ printf '{"authInfo": {"accessToken":"redacted"}}\n' > "$LEGACY_HOME/.cursor/cli-
 CALLS_FILE="$TEST_TMP_DIR/status-calls-4.txt"; : > "$CALLS_FILE"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$LEGACY_HOME" PATH="$CURSOR_PROBE_PATH" CURSOR_STATUS_CALLS="$CALLS_FILE"
+    export "HOME=${LEGACY_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":false}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     cursor_agent_auth_method
@@ -307,8 +307,8 @@ CALLS_FILE="$TEST_TMP_DIR/status-calls-5.txt"; : > "$CALLS_FILE"
 AUTH_CACHE="$TEST_TMP_DIR/auth-cache/verdict"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH" CURSOR_STATUS_CALLS="$CALLS_FILE"
-    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE="$AUTH_CACHE"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
+    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 "OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE=${AUTH_CACHE}"
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true,"userInfo":{"email":"secret@example.test"}}'
     first=$(bash -c 'source "'"$CURSOR_LIB"'"; cursor_agent_auth_method')
     second=$(bash -c 'source "'"$CURSOR_LIB"'"; cursor_agent_auth_method')
@@ -330,8 +330,8 @@ mkdir -p "$(dirname "$AUTH_CACHE")"
 printf '%s\nyes\n' "$(( $(date +%s) - 7200 ))" > "$AUTH_CACHE"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH" CURSOR_STATUS_CALLS="$CALLS_FILE"
-    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE="$AUTH_CACHE"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
+    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 "OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE=${AUTH_CACHE}"
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":false}'
     bash -c 'source "'"$CURSOR_LIB"'"; cursor_agent_auth_method'
 )
@@ -349,8 +349,8 @@ TARGET_FILE="$SYMLINK_DIR/victim"; printf 'untouched\n' > "$TARGET_FILE"
 ln -sf "$TARGET_FILE" "$SYMLINK_DIR/verdict"
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH"
-    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE="$SYMLINK_DIR/verdict"
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}"
+    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 "OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE=${SYMLINK_DIR}/verdict"
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
     bash -c 'source "'"$CURSOR_LIB"'"; cursor_agent_auth_method' 2>/dev/null
 )
@@ -361,7 +361,7 @@ else
 fi
 
 test_case "verdict cache defaults to the user cache directory, not the workspace"
-default_cache=$(HOME="$EMPTY_CURSOR_HOME" WORKSPACE_DIR="$TEST_TMP_DIR/some-checkout" env -u XDG_CACHE_HOME -u OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE bash -c 'source "'"$CURSOR_LIB"'"; _cursor_agent_auth_cache_file')
+default_cache=$(env -u XDG_CACHE_HOME -u OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE "HOME=${EMPTY_CURSOR_HOME}" "WORKSPACE_DIR=${TEST_TMP_DIR}/some-checkout" bash -c 'source "'"$CURSOR_LIB"'"; _cursor_agent_auth_cache_file')
 if [[ "$default_cache" == "$EMPTY_CURSOR_HOME/.cache/claude-octopus/cursor-agent-auth-verdict" ]]; then
     test_pass
 else
@@ -425,10 +425,10 @@ cat >/dev/null
 echo "cursor response"
 EOF
 chmod +x "$MOCK_BIN_DIR/timeout" "$MOCK_BIN_DIR/agent"
-if PATH="$MOCK_BIN_DIR:/usr/bin:/bin" CURSOR_API_KEY=test ARGV_FILE="$ARGV_FILE" \
+if PATH="${MOCK_BIN_DIR}:/usr/bin:/bin" CURSOR_API_KEY=test ARGV_FILE="${ARGV_FILE}" \
     cursor_agent_execute cursor-agent "prompt" "" researcher >/dev/null 2>&1 &&
    grep -q -- '--mode ask' "$ARGV_FILE" &&
-   PATH="$MOCK_BIN_DIR:/usr/bin:/bin" CURSOR_API_KEY=test ARGV_FILE="$ARGV_FILE" \
+   PATH="${MOCK_BIN_DIR}:/usr/bin:/bin" CURSOR_API_KEY=test ARGV_FILE="${ARGV_FILE}" \
     cursor_agent_execute cursor-agent "prompt" "" implementer >/dev/null 2>&1 &&
    ! grep -q -- '--mode' "$ARGV_FILE"; then
     test_pass
