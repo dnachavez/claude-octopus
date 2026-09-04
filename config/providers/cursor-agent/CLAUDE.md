@@ -23,10 +23,12 @@ This file contains Cursor-specific instructions for Claude Octopus workflows.
      2026.06.24 until the CLI persisted its session); `agent status --format json`
      must then report `"isAuthenticated": true`. The call is network-bound (3–12s),
      so it is bounded by `OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT` (default 15s)
-     and its yes/no verdict is cached per process and on disk
-     (`${WORKSPACE_DIR:-~/.claude-octopus}/.cursor-agent-auth-cache`,
-     `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL` default 600s, negative verdicts
-     `OCTOPUS_CURSOR_AGENT_AUTH_NEGATIVE_TTL` default 60s, TTL `0` disables).
+     and its yes/no verdict is cached per process and on disk in the user
+     cache directory (`${XDG_CACHE_HOME:-~/.cache}/claude-octopus/cursor-agent-auth-verdict`,
+     never inside the workspace; symlinks are refused and the file is replaced
+     atomically; `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL` default 600s, negative
+     verdicts `OCTOPUS_CURSOR_AGENT_AUTH_NEGATIVE_TTL` default 60s, TTL `0`
+     disables, `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE` overrides the path).
      The JSON carries the account email and is never echoed or cached.
 
 If the CLI is not installed or not authenticated, silently skip — no errors, no warnings.

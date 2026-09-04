@@ -6,6 +6,22 @@ debate_label_upper() {
     printf '%s\n' "$1" | tr '[:lower:]' '[:upper:]'
 }
 
+# First ready provider for a release-default debate seat, skipping agents that
+# already hold a slot. Cursor CLI leads (Cursor-only setups), then the other
+# external CLIs; a Claude Opus seat is the last resort so the debate can still
+# run with distinct participants.
+_debate_pick_available_seat() {
+    local candidate
+    for candidate in cursor-agent codex agy copilot qwen opencode claude-opus; do
+        case " $* " in *" $candidate "*) continue ;; esac
+        if is_agent_available_v2 "$candidate" 2>/dev/null; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
 debate_labels_match() {
     local label="$1"
     local label_upper="$2"
@@ -52,7 +68,7 @@ grapple_debate() {
     local agent_b="agy" label_b="Antigravity" label_b_upper="ANTIGRAVITY"
     local agent_c="claude-sonnet" label_c="Sonnet" label_c_upper="SONNET"
 
-    local _debate_config_seats=false
+    local _debate_cfg_a=false _debate_cfg_b=false _debate_cfg_c=false
     local _debate_config_file="${HOME}/.claude-octopus/config/providers.json"
     if [[ -f "$_debate_config_file" ]] && command -v jq >/dev/null 2>&1; then
         local _participants _participant_count
@@ -78,15 +94,14 @@ grapple_debate() {
                 _label=$(agent_display_label "$_agent") || continue
                 _label_upper=$(agent_display_label_upper "$_agent") || continue
                 case "$_slot_idx" in
-                    0) agent_a="$_agent"; label_a="$_label"; label_a_upper="$_label_upper" ;;
-                    1) agent_b="$_agent"; label_b="$_label"; label_b_upper="$_label_upper" ;;
-                    2) agent_c="$_agent"; label_c="$_label"; label_c_upper="$_label_upper"; break ;;
+                    0) agent_a="$_agent"; label_a="$_label"; label_a_upper="$_label_upper"; _debate_cfg_a=true ;;
+                    1) agent_b="$_agent"; label_b="$_label"; label_b_upper="$_label_upper"; _debate_cfg_b=true ;;
+                    2) agent_c="$_agent"; label_c="$_label"; label_c_upper="$_label_upper"; _debate_cfg_c=true; break ;;
                 esac
                 _resolved_count=$((_resolved_count + 1))
                 _slot_idx=$((_slot_idx + 1))
             done <<< "$_participants"
             if [[ "$_resolved_count" -gt 0 ]]; then
-                _debate_config_seats=true
                 log INFO "Debate participants (from config): $label_a ($agent_a) vs $label_b ($agent_b) vs $label_c ($agent_c)"
             else
                 log INFO "Debate config had no valid participants; using defaults: $label_a ($agent_a) vs $label_b ($agent_b) vs $label_c ($agent_c)"
@@ -94,23 +109,35 @@ grapple_debate() {
         fi
     fi
 
-    # Availability fallback for the release-default seats only (config-selected
-    # participants are never overridden): when Antigravity (slot B) or Codex
-    # (slot A) is not usable but Cursor CLI is, seat Cursor instead of dispatching
-    # to a provider that is guaranteed to fail.
-    if [[ "$_debate_config_seats" != true ]] && declare -f is_agent_available_v2 >/dev/null 2>&1 \
-        && is_agent_available_v2 cursor-agent 2>/dev/null; then
-        if [[ "$agent_b" == "agy" ]] && ! is_agent_available_v2 agy 2>/dev/null; then
-            agent_b="cursor-agent"
-            label_b=$(agent_display_label cursor-agent)
-            label_b_upper=$(agent_display_label_upper cursor-agent)
-            log INFO "Debate: Antigravity unavailable, seating Cursor CLI as participant B"
-        elif [[ "$agent_a" == "codex" ]] && ! is_agent_available_v2 codex 2>/dev/null; then
-            agent_a="cursor-agent"
-            label_a=$(agent_display_label cursor-agent)
-            label_a_upper=$(agent_display_label_upper cursor-agent)
-            log INFO "Debate: Codex unavailable, seating Cursor CLI as participant A"
-        fi
+    # Availability fallback for release-default external seats. Slots taken from
+    # configuration are never overridden; every unconfigured slot is evaluated
+    # on its own, so a config naming only one participant still gets usable
+    # defaults, and both defaults are replaced when both are unavailable.
+    if declare -f is_agent_available_v2 >/dev/null 2>&1; then
+        local _slot_name _slot_agent _slot_cfg _replacement
+        for _slot_name in A B; do
+            if [[ "$_slot_name" == "A" ]]; then
+                _slot_agent="$agent_a"; _slot_cfg="$_debate_cfg_a"
+            else
+                _slot_agent="$agent_b"; _slot_cfg="$_debate_cfg_b"
+            fi
+            [[ "$_slot_cfg" == true ]] && continue
+            is_agent_available_v2 "$_slot_agent" 2>/dev/null && continue
+            if ! _replacement="$(_debate_pick_available_seat "$agent_a" "$agent_b" "$agent_c")"; then
+                log WARN "Debate: default participant '$_slot_agent' (slot ${_slot_name}) is unavailable and no replacement provider is ready"
+                continue
+            fi
+            log INFO "Debate: default participant '$_slot_agent' unavailable, seating $_replacement as participant ${_slot_name}"
+            if [[ "$_slot_name" == "A" ]]; then
+                agent_a="$_replacement"
+                label_a=$(agent_display_label "$_replacement")
+                label_a_upper=$(agent_display_label_upper "$_replacement")
+            else
+                agent_b="$_replacement"
+                label_b=$(agent_display_label "$_replacement")
+                label_b_upper=$(agent_display_label_upper "$_replacement")
+            fi
+        done
     fi
 
     # Keep debate attribution labels unique even when multiple configured

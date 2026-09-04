@@ -35,8 +35,10 @@ proven safe to remove.
   `scripts/lib/cursor-agent.sh` now owns one
   bounded `agent status --format json` probe (network-bound, 3-12s observed;
   `OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT` default 15s) whose verdict is cached
-  per process and on disk (`.cursor-agent-auth-cache`, TTL 600s, negative
-  60s; legacy `authInfo` still short-circuits); providers, preflight, smoke, model
+  per process and in the user cache directory
+  (`~/.cache/claude-octopus/cursor-agent-auth-verdict`, TTL 600s, negative
+  60s, never in the workspace, symlinks refused, atomic replace; the
+  `authInfo` file check still short-circuits); providers, preflight, smoke, model
   resolver, and Embrace call the helper instead of grepping the file. The
   fallback watchdog in `_cursor_agent_run_with_timeout` detaches its stdio so
   fast probes no longer stall a caller's command substitution.
@@ -70,6 +72,30 @@ proven safe to remove.
   Expectations updated in registry-contracts, model-metadata-parity,
   usage-report, readme-release-sync, shared-marketplace-sync, and
   agy-provider suites.
+- Verified (2026-09-04, this branch head): `CI=true GITHUB_ACTIONS=true make
+  ci-changed` selected the full matrix and passed 16/16 smoke, 305/305 unit,
+  and 8/8 integration suites (5629 cases, 0 failures); `make sync-check`,
+  `git diff --check`, and `git diff origin/main...HEAD --summary | grep "mode
+  change"` (empty) passed. Focused suites, all passing:
+  `bash tests/unit/test-cursor-agent-provider.sh` (33/33),
+  `test-provider-registry-contracts.sh` (15/15), `test-provider-registry-parity.sh`
+  (16/16), `test-provider-neutral-council.sh` (6/6), `test-model-metadata-parity.sh`
+  (6/6), `test-readme-release-sync.sh` (11/11), `test-shared-marketplace-sync.sh`
+  (17/17), `test-env-var-effects.sh` (9/9), `test-agy-provider.sh` (52/52; one
+  earlier run hit a transient 1s mock timeout under concurrent load and passed
+  twice on rerun), `tests/test-fleet-diversity.sh` (42/42). Live, read-only:
+  `scripts/helpers/check-providers.sh` reports `cursor-agent:available` with
+  and without `CURSOR_API_KEY`; `bash scripts/helpers/build-fleet.sh review
+  standard test` seats cursor-agent; one real dispatch through the exact
+  command string (`agent --trust --output-format text --mode ask --model auto
+  -p ""`, prompt on stdin) returned `ok`.
+- CodeRabbit round 1 (7 threads) is addressed: per-slot debate fallback that
+  also replaces both unavailable defaults, verdict cache moved to the user
+  cache directory with symlink refusal and atomic replace, canonical-ID
+  matching for configured review participants, PATH-restricted watchdog test,
+  OrcaRouter in the README comparison row, and this verification record. The
+  docstring-coverage pre-merge warning is advisory (bash helpers) and was not
+  acted on.
 - Delivery: PR [#1001](https://github.com/nyldn/claude-octopus/pull/1001)
   from fork branch `dnachavez:add-cursor-cli-provider` (remote `fork`,
   `git@github.com:dnachavez/claude-octopus.git`); `origin` is read-only for

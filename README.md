@@ -405,7 +405,7 @@ Or type `/octo:auto <what you want>` and the smart router picks for you. Plain-p
 
 | | Claude Code alone | [Superpowers](https://github.com/obra/superpowers) | Claude Octopus |
 |---|---|---|---|
-| **Core idea** | One model, your prompts | Structured methodology for one agent | Built-in Claude plus up to 11 external integrations cross-checking each other |
+| **Core idea** | One model, your prompts | Structured methodology for one agent | Built-in Claude plus up to 12 external integrations cross-checking each other |
 | **Providers** | Claude only | Claude only | Claude host; Codex, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OrcaRouter, OpenCode, Cursor CLI, Grok, and Kimi Code |
 | **Workflow** | Ad-hoc | Spec → plan → subagent-driven dev | Discover → Define → Develop → Deliver (Double Diamond) |
 | **Strength** | Simple, no setup | Long autonomous runs with discipline | Multiple perspectives catching blind spots |

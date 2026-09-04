@@ -40,8 +40,9 @@
   persisted an `authInfo` block in `~/.cursor/cli-config.json` (observed on
   build 2026.06.24 at session start). One bounded `agent status --format json`
   probe in `scripts/lib/cursor-agent.sh`
-  (own 15s timeout, verdict cached per process and on disk for 10 minutes;
-  negative verdicts for 60s) replaces seven duplicated file greps across
+  (own 15s timeout, verdict cached per process and in the user cache
+  directory for 10 minutes, negative verdicts for 60s, symlinks refused and
+  atomic replace) replaces seven duplicated file greps across
   detection, health, preflight, smoke, model resolution, and Embrace fleet
   construction; account details from the probe are never echoed.
 

@@ -116,8 +116,12 @@ _cursor_agent_config_has_auth_info() {
 }
 
 # On-disk verdict cache: two lines (epoch seconds, yes|no). Never credentials.
+# Kept in the user's cache directory, never in the workspace: a workspace may be
+# a repository checkout, where a committed symlink could redirect the write.
+# Reads refuse symlinks and writes replace the file atomically via rename, which
+# never follows a link that appears between the check and the replace.
 _cursor_agent_auth_cache_file() {
-    printf '%s\n' "${OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE:-${WORKSPACE_DIR:-${HOME}/.claude-octopus}/.cursor-agent-auth-cache}"
+    printf '%s\n' "${OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE:-${XDG_CACHE_HOME:-${HOME}/.cache}/claude-octopus/cursor-agent-auth-verdict}"
 }
 
 _cursor_agent_auth_cache_ttl() {
@@ -132,6 +136,7 @@ _cursor_agent_auth_cache_read() {
     ttl="$(_cursor_agent_auth_cache_ttl)"
     [[ "$ttl" -gt 0 ]] || return 1
     file="$(_cursor_agent_auth_cache_file)"
+    [[ -L "$file" ]] && return 1
     [[ -f "$file" ]] || return 1
     { read -r stamp && read -r state; } < "$file" 2>/dev/null || return 1
     [[ "$stamp" =~ ^[0-9]+$ ]] || return 1
@@ -148,11 +153,23 @@ _cursor_agent_auth_cache_read() {
 }
 
 _cursor_agent_auth_cache_write() {
-    local file
+    local file dir tmp
     [[ "$(_cursor_agent_auth_cache_ttl)" -gt 0 ]] || return 0
     file="$(_cursor_agent_auth_cache_file)"
-    mkdir -p "$(dirname "$file")" 2>/dev/null || return 0
-    printf '%s\n%s\n' "$(date +%s)" "$1" > "$file" 2>/dev/null || true
+    if [[ -L "$file" ]]; then
+        _cursor_log WARN "cursor-agent: refusing to write the auth verdict through a symlink: $file"
+        return 0
+    fi
+    dir="$(dirname "$file")"
+    mkdir -p "$dir" 2>/dev/null || return 0
+    tmp="$(mktemp "${dir}/.cursor-agent-auth-verdict.XXXXXX" 2>/dev/null)" || return 0
+    if printf '%s\n%s\n' "$(date +%s)" "$1" > "$tmp" 2>/dev/null \
+        && chmod 600 "$tmp" 2>/dev/null \
+        && mv -f "$tmp" "$file" 2>/dev/null; then
+        return 0
+    fi
+    /bin/rm -f "$tmp" 2>/dev/null || true
+    return 0
 }
 
 _cursor_agent_session_probe() {

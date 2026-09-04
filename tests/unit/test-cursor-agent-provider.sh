@@ -229,13 +229,16 @@ else
     test_fail "expected unavailable:none, got '$probe_output'"
 fi
 
-test_case "session status probe stays bounded by OCTOPUS_CURSOR_AGENT_PROBE_TIMEOUT"
+test_case "session status probe stays bounded by OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT"
 reset_mocks; write_cursor_status_mock
-rm -f "$MOCK_BIN_DIR/timeout"   # force the portable fallback watchdog on hosts without coreutils timeout
+# Force the portable fallback watchdog: PATH holds only the mock dir (no
+# coreutils timeout/gtimeout on any host) plus a grep shim for the verdict parse.
+rm -f "$MOCK_BIN_DIR/timeout"
+printf '#!/bin/bash\nexec /usr/bin/grep "$@"\n' > "$MOCK_BIN_DIR/grep"; chmod +x "$MOCK_BIN_DIR/grep"
 SECONDS=0
 probe_output=$(
     unset CURSOR_API_KEY
-    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH"
+    export HOME="$EMPTY_CURSOR_HOME" PATH="$MOCK_BIN_DIR"
     export CURSOR_MOCK_STATUS_SLEEP=5 OCTOPUS_CURSOR_AGENT_PROBE_TIMEOUT=1 OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT=1
     export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
@@ -337,6 +340,32 @@ if [[ "$probe_output" == "none" && "${call_count:-0}" -eq 1 && "$(sed -n '2p' "$
     test_pass
 else
     test_fail "stale cache should re-probe (calls=${call_count:-0} result=$probe_output cache=$(cat "$AUTH_CACHE" 2>/dev/null | tr '\n' ' '))"
+fi
+
+test_case "verdict cache refuses a symlinked cache file and never follows it"
+reset_mocks; write_cursor_status_mock
+SYMLINK_DIR="$TEST_TMP_DIR/auth-cache/symlinked"; mkdir -p "$SYMLINK_DIR"
+TARGET_FILE="$SYMLINK_DIR/victim"; printf 'untouched\n' > "$TARGET_FILE"
+ln -sf "$TARGET_FILE" "$SYMLINK_DIR/verdict"
+probe_output=$(
+    unset CURSOR_API_KEY
+    export HOME="$EMPTY_CURSOR_HOME" PATH="$CURSOR_PROBE_PATH"
+    export OCTOPUS_CURSOR_AGENT_AUTH_CACHE_TTL=600 OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE="$SYMLINK_DIR/verdict"
+    export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
+    bash -c 'source "'"$CURSOR_LIB"'"; cursor_agent_auth_method' 2>/dev/null
+)
+if [[ "$probe_output" == "cursor-session" && "$(cat "$TARGET_FILE")" == "untouched" && -L "$SYMLINK_DIR/verdict" ]]; then
+    test_pass
+else
+    test_fail "symlinked cache must not be followed (result=$probe_output target=$(cat "$TARGET_FILE" 2>/dev/null))"
+fi
+
+test_case "verdict cache defaults to the user cache directory, not the workspace"
+default_cache=$(HOME="$EMPTY_CURSOR_HOME" WORKSPACE_DIR="$TEST_TMP_DIR/some-checkout" env -u XDG_CACHE_HOME -u OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE bash -c 'source "'"$CURSOR_LIB"'"; _cursor_agent_auth_cache_file')
+if [[ "$default_cache" == "$EMPTY_CURSOR_HOME/.cache/claude-octopus/cursor-agent-auth-verdict" ]]; then
+    test_pass
+else
+    test_fail "unexpected default cache path: $default_cache"
 fi
 
 test_case "no consumer re-implements the Cursor auth probe"
@@ -488,12 +517,40 @@ else
     test_fail "octo_model_family: composer=$(octo_model_family composer-2.5) grok=$(octo_model_family cursor-grok-4.6-high) cursor-agent=$(octo_model_family cursor-agent)"
 fi
 
+test_case "configured review participants accept the cursor alias and keep executor variants"
+review_fleet_fn="$(sed -n '/^_review_fleet_from_config() {/,/^}/p' "$PROJECT_ROOT/scripts/lib/review.sh")"
+REVIEW_HOME="$TEST_TMP_DIR/review-alias-home"; mkdir -p "$REVIEW_HOME/.claude-octopus/config"
+# Order matters: agy takes the security seat first, codex-review the logic seat,
+# so the cursor alias must land on the diversity seat under its canonical ID.
+printf '{"routing":{"features":{"review":["gemini-fast","codex-review","cursor"]}}}\n' > "$REVIEW_HOME/.claude-octopus/config/providers.json"
+review_output=$(HOME="$REVIEW_HOME" bash -c 'log(){ :; }; source "'"$PROJECT_ROOT"'/scripts/lib/provider-registry.sh"; '"$review_fleet_fn"'; _review_fleet_from_config' 2>/dev/null)
+if grep -q '^agy:implementation-security-reviewer' <<< "$review_output" &&
+   grep -q '^codex-review:implementation-logic-reviewer' <<< "$review_output" &&
+   grep -q '^cursor-agent:implementation-diversity-reviewer' <<< "$review_output" &&
+   ! grep -qE '^(cursor|gemini-fast):' <<< "$review_output"; then
+    test_pass
+else
+    test_fail "alias handling in _review_fleet_from_config drifted: $(printf '%s' "$review_output" | tr '\n' ' ')"
+fi
+
+test_case "debate seat fallback skips seated agents and evaluates each default slot"
+pick_fn="$(sed -n '/^_debate_pick_available_seat() {/,/^}/p' "$PROJECT_ROOT/scripts/lib/debate.sh")"
+picked=$(bash -c 'is_agent_available_v2(){ case "$1" in cursor-agent|claude-opus) return 0;; *) return 1;; esac; }; '"$pick_fn"'; a=$(_debate_pick_available_seat codex agy claude-sonnet); b=$(_debate_pick_available_seat codex cursor-agent claude-sonnet); echo "$a/$b"')
+if [[ "$picked" == "cursor-agent/claude-opus" ]] &&
+   grep -q '_debate_cfg_a=true' "$PROJECT_ROOT/scripts/lib/debate.sh" &&
+   grep -q 'for _slot_name in A B' "$PROJECT_ROOT/scripts/lib/debate.sh" &&
+   ! grep -q '_debate_config_seats' "$PROJECT_ROOT/scripts/lib/debate.sh"; then
+    test_pass
+else
+    test_fail "debate fallback drifted (picked=$picked)"
+fi
+
 test_case "review and debate cascades seat Cursor when preferred providers are absent"
 if grep -q 'cursor-agent:implementation-logic-reviewer' "$PROJECT_ROOT/scripts/lib/review.sh" &&
    grep -q 'cursor-agent:implementation-security-reviewer' "$PROJECT_ROOT/scripts/lib/review.sh" &&
    grep -q 'cursor-agent:implementation-cve-reviewer' "$PROJECT_ROOT/scripts/lib/review.sh" &&
    grep -q 'cursor_agent_is_available' "$PROJECT_ROOT/scripts/lib/review.sh" &&
-   grep -q 'is_agent_available_v2 cursor-agent' "$PROJECT_ROOT/scripts/lib/debate.sh" &&
+   grep -q '_debate_pick_available_seat' "$PROJECT_ROOT/scripts/lib/debate.sh" &&
    grep -q '"Cursor Perspective"' "$PROJECT_ROOT/scripts/helpers/build-fleet.sh" &&
    ! grep -q '"XAI Perspective"' "$PROJECT_ROOT/scripts/helpers/build-fleet.sh"; then
     test_pass

@@ -68,9 +68,19 @@ _review_fleet_from_config() {
     local fleet=""
     local has_logic=false has_security=false has_arch=false has_cve=false has_diversity=false
 
+    local raw_executor canonical
     while IFS= read -r provider; do
         [[ -z "$provider" ]] && continue
-        case "$provider" in
+        # Match on the canonical registry ID so registered aliases (cursor,
+        # gemini-*, antigravity, openai, ...) select a seat. Executor variants
+        # such as codex-review keep their own name; pure aliases are rewritten
+        # to the executable provider ID, preserving any :model suffix.
+        raw_executor="${provider%%:*}"
+        canonical="$(octo_provider_canonical "$raw_executor" 2>/dev/null || printf '%s' "$raw_executor")"
+        if [[ "$canonical" != "$raw_executor" && "$raw_executor" != "${canonical}-"* ]]; then
+            provider="${canonical}${provider#"$raw_executor"}"
+        fi
+        case "$canonical" in
             codex|codex-*)
                 if [[ "$has_logic" == "false" ]]; then
                     fleet+="${provider}:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
