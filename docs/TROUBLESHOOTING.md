@@ -27,7 +27,8 @@ A provider is used only when its CLI is installed AND its auth check passes. If 
 | 🟣 Perplexity | `PERPLEXITY_API_KEY` set | Export the key; no CLI needed |
 | 🌐 OpenRouter | Enabled in config AND `OPENROUTER_API_KEY` set | Export the key |
 | 🟤 OpenCode | `opencode` on PATH, `opencode auth list` succeeds | `opencode auth login` |
-| ⚡ Grok | `cursor-agent` binary present plus `CURSOR_API_KEY` or authenticated `~/.cursor/cli-config.json` | Sign in to the Cursor CLI or export `CURSOR_API_KEY` |
+| 🟪 Cursor CLI | `agent` on PATH reporting a CalVer version, plus `CURSOR_API_KEY` or an authenticated session (`agent status` says authenticated; older builds also persist `authInfo` in `~/.cursor/cli-config.json`) | `agent login` or export `CURSOR_API_KEY`; pin models with flat IDs from `agent models` (bracket overrides are rejected) |
+| ⚡ Grok | `grok` on PATH plus `XAI_API_KEY` or `~/.grok/auth.json` | `grok login` or export `XAI_API_KEY` |
 | 🔵 claude-sdk seat | `CLAUDE_SDK_API_KEY` set | Export an Anthropic API key; the shim exits with code 78 and "CLAUDE_SDK_API_KEY is not set" without it |
 
 ## Common non-auth failures

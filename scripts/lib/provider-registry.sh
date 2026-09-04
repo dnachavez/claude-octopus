@@ -26,7 +26,7 @@ atlascloud|atlas,atlas-cloud|atlascloud|atlascloud|model-config,health,detect,di
 openai-compatible||openai-compatible|openai-compatible|model-config,council,detect,dispatch,env,model-gateway
 openai-tools||openai-compatible|openai-compatible|model-config,council,dispatch,env,model-gateway
 openai-compatible-agent||openai-compatible|openai-compatible|model-config,dispatch,env,model-gateway
-cursor-agent|cursor|cursor-agent|cursor|model-config,health,detect,dispatch,env,model-gateway
+cursor-agent|cursor|cursor-agent|cursor|model-config,council,health,detect,dispatch,env,model-gateway
 grok|xai|grok|xai|model-config,health,detect,dispatch,env
 qwen||qwen|alibaba|model-config,council,health,detect,dispatch,env
 ollama|local|ollama|local|model-config,health,detect,dispatch,env,model-gateway
@@ -291,7 +291,6 @@ openai-tools|detect|api-configured-runtime-has-no-local-cli-detection
 openai-compatible-agent|council|agent-runtime-is-not-a-supported-council-seat
 openai-compatible-agent|health|generic-agent-runtime-has-no-provider-specific-health-probe
 openai-compatible-agent|detect|api-configured-runtime-has-no-local-cli-detection
-cursor-agent|council|interactive-agent-cli-is-not-a-supported-council-seat
 grok|council|grok-runtime-is-not-a-supported-council-seat
 ollama|council|local-runtime-is-not-a-supported-council-seat
 copilot|council|copilot-runtime-is-not-a-supported-council-seat

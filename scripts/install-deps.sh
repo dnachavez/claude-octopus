@@ -106,7 +106,7 @@ check_deps() {
         warnings+=("kimi:Kimi Code CLI not installed (optional) — install: curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash; then run kimi and enter /login")
     fi
 
-    # Cursor Agent CLI (optional — Grok 4.20 via Cursor subscription)
+    # Cursor CLI (optional — Cursor subscription models via the `agent` binary)
     if declare -f _is_cursor_agent_binary >/dev/null 2>&1 && _is_cursor_agent_binary; then
         ok+=("cursor-agent:Cursor Agent CLI installed")
     else

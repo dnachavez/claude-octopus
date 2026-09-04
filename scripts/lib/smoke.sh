@@ -828,11 +828,11 @@ SMOKE_TEST_CACHE_FILE="${WORKSPACE_DIR:-$HOME/.claude-octopus}/.smoke-test-cache
 smoke_test_cache_key() {
     local codex_model cursor_agent_model cursor_agent_state codex_sandbox
     codex_model=$(get_agent_model "codex" 2>/dev/null || echo "default")
-    cursor_agent_model=$(get_agent_model "cursor-agent" 2>/dev/null || echo "${OCTOPUS_CURSOR_AGENT_MODEL:-grok-4-20}")
-    if [[ -n "${CURSOR_API_KEY:-}" ]]; then
+    cursor_agent_model=$(get_agent_model "cursor-agent" 2>/dev/null || echo "${OCTOPUS_CURSOR_AGENT_MODEL:-auto}")
+    if declare -f cursor_agent_auth_method >/dev/null 2>&1; then
+        cursor_agent_state="$(cursor_agent_auth_method)"
+    elif [[ -n "${CURSOR_API_KEY:-}" ]]; then
         cursor_agent_state="env:CURSOR_API_KEY"
-    elif grep -Eq '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" 2>/dev/null; then
-        cursor_agent_state="${HOME}/.cursor/cli-config.json"
     else
         cursor_agent_state="none"
     fi
@@ -909,7 +909,7 @@ _display_smoke_test_error() {
             if [[ "$provider" == "codex" ]]; then
                 echo -e "    ${DIM}Fix: export OCTOPUS_CODEX_MODEL=gpt-5.6-sol${NC}"
             elif [[ "$provider" == "cursor" || "$provider" == "cursor-agent" || "$provider" == "Cursor Agent" ]]; then
-                echo -e "    ${DIM}Fix: export OCTOPUS_CURSOR_AGENT_MODEL=grok-4-20${NC}"
+                echo -e "    ${DIM}Fix: export OCTOPUS_CURSOR_AGENT_MODEL=auto  (or any ID from: agent models)${NC}"
             elif [[ "$provider" == "agy" || "$provider" == "Antigravity" ]]; then
                 echo -e "    ${DIM}Fix: agy models  (pick a valid label)  OR  unset OCTOPUS_AGY_MODEL to use agy's default${NC}"
             else
@@ -1003,9 +1003,10 @@ _smoke_test_provider() {
         popd >/dev/null 2>&1 || cd "$OLDPWD" 2>/dev/null || true
         rm -rf "$smoke_dir" 2>/dev/null
     elif [[ "$provider" == "cursor-agent" ]]; then
-        # --trust required for untrusted workspaces; matches cursor-agent.sh:143 dispatch path
+        # cmd_str already carries --trust, --output-format text, --mode and
+        # --model from dispatch; only the stdin headless trigger is appended.
         echo "Reply with exactly: ok" | run_with_timeout "$smoke_timeout" \
-            $cmd_str -p "" --trust --output-format text \
+            $cmd_str -p "" \
             >/dev/null 2>"$stderr_file" || smoke_exit=$?
     elif [[ "$provider" == "agy" ]]; then
         # agy-exec.sh is a stdin adapter that builds its own argv and execs agy
@@ -1089,8 +1090,7 @@ provider_smoke_test() {
     # Determine which providers are available (from preflight state)
     local has_codex=false has_cursor_agent=false has_agy=false
     command -v codex &>/dev/null && has_codex=true
-    if command -v agent &>/dev/null && _is_cursor_agent_binary && \
-       { [[ -n "${CURSOR_API_KEY:-}" ]] || grep -Eq '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" 2>/dev/null; }; then
+    if declare -f cursor_agent_is_available >/dev/null 2>&1 && cursor_agent_is_available; then
         has_cursor_agent=true
     fi
     command -v agy &>/dev/null && has_agy=true

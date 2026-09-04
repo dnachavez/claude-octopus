@@ -52,8 +52,8 @@ fi
 test_case "subscription Cursor Grok and metered standalone Grok stay distinct"
 export "WORKSPACE_DIR=${TEST_TMP_DIR}"
 source "$PROJECT_ROOT/scripts/lib/cost.sh"
-cursor_price="$(get_model_pricing grok-4-20 cursor-agent)"
-standalone_price="$(get_model_pricing grok-4-20 grok)"
+cursor_price="$(get_model_pricing cursor-grok-4.6-high cursor-agent)"
+standalone_price="$(get_model_pricing cursor-grok-4.6-high grok)"
 if [[ "$cursor_price" == "0.00:0.00" && "$standalone_price" == "3.00:15.00" ]]; then
     test_pass
 else

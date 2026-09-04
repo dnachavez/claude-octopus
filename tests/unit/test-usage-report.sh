@@ -18,7 +18,7 @@ cat > "$TMP_DIR/usage/subagent-usage.jsonl" <<'EOF'
 {"provider":"codex","model":"gpt-5.6-terra","skill":"flow-develop","est_tokens_in":5000,"est_tokens_out":1000,"quality":70}
 {"provider":"claude","model":"claude-sonnet-5","skill":"flow-discover","mcp_server":"perplexity-mcp","est_tokens_in":20000,"est_tokens_out":4000,"quality":90}
 {"provider":"agy","skill":"flow-discover","est_tokens_in":8000,"est_tokens_out":3000,"quality":60}
-{"provider":"cursor-agent","model":"grok-4-20","skill":"flow-review","est_tokens_in":1000000,"est_tokens_out":0,"quality":75}
+{"provider":"cursor-agent","model":"composer-2.5","skill":"flow-review","est_tokens_in":1000000,"est_tokens_out":0,"quality":75}
 {"provider":"cursor-agent-preview","model":"gpt-5.4","skill":"flow-review","est_tokens_in":1000000,"est_tokens_out":0,"quality":75}
 {"provider":"grok","model":"default","skill":"flow-review","est_tokens_in":1000000,"est_tokens_out":0,"quality":75}
 {"provider":"copilot","model":"gpt-5.4","skill":"flow-review","est_tokens_in":1000000,"est_tokens_out":0,"quality":75}

@@ -17,7 +17,33 @@
   readiness. A pin with no matching alias fails closed. Config errors exit 1,
   so the existing exit-code gate in `spawn.sh` handles them.
 
+- Cursor CLI (`agent`) is a first-class peer provider: registry `council`
+  capability, review-fleet and debate availability cascades, `env -i`
+  credential isolation with `OCTOPUS_ALLOW_FULL_CURSOR_AGENT_ENV` opt-out, a
+  curated catalog of current `agent models` IDs, and a
+  `config/providers/cursor-agent/CLAUDE.md` module. Public documentation now
+  lists eleven external providers.
+- `OCTOPUS_CURSOR_AGENT_MODE=ask|plan|agent` controls Cursor tool access.
+  `agent -p` otherwise has write and shell access, so dispatch is read-only
+  (`--mode ask`) by default, `--mode plan` for planner roles, and full agent
+  mode only for implementer roles or an explicit override.
+
+### Changed
+
+- The unpinned Cursor model is `auto` (Cursor's service-side selection)
+  instead of the retired `grok-4-20`; fallback candidates and pricing rows
+  follow the live catalog.
+
 ### Fixed
+
+- Cursor session authentication is detected even when the CLI has not yet
+  persisted an `authInfo` block in `~/.cursor/cli-config.json` (observed on
+  build 2026.06.24 at session start). One bounded `agent status --format json`
+  probe in `scripts/lib/cursor-agent.sh`
+  (own 15s timeout, verdict cached per process and on disk for 10 minutes;
+  negative verdicts for 60s) replaces seven duplicated file greps across
+  detection, health, preflight, smoke, model resolution, and Embrace fleet
+  construction; account details from the probe are never echoed.
 
 - Record the exact post-persona, post-budget prompt in each seat result, annotate
   prompt compression with original and final sizes, and attribute oversize

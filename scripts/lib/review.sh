@@ -127,6 +127,18 @@ _review_fleet_from_config() {
                     has_diversity=true
                 fi
                 ;;
+            cursor-agent|cursor-agent-*)
+                if [[ "$has_security" == "false" ]]; then
+                    fleet+="${provider}:implementation-security-reviewer:OWASP vulnerabilities, injection, auth flaws, data exposure"$'\n'
+                    has_security=true
+                elif [[ "$has_logic" == "false" ]]; then
+                    fleet+="${provider}:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
+                    has_logic=true
+                elif [[ "$has_diversity" == "false" ]]; then
+                    fleet+="${provider}:implementation-diversity-reviewer:cross-family perspective on logic and assumptions"$'\n'
+                    has_diversity=true
+                fi
+                ;;
             copilot|copilot-*)
                 if [[ "$has_cve" == "false" ]]; then
                     fleet+="${provider}:implementation-cve-reviewer:known CVEs via web search, library advisories"$'\n'
@@ -382,18 +394,27 @@ build_review_fleet() {
 
     # ── Cascade fallback (original behavior — no config or empty config) ──
 
-    # logic-reviewer: Codex (OpenAI) → OpenCode → Copilot → claude-sonnet fallback
+    # Cursor CLI: `agent` is a generic binary name, so gate on the provider
+    # helper (identity + auth) rather than `command -v agent`.
+    local cursor_agent_ready=false
+    if declare -f cursor_agent_is_available >/dev/null 2>&1 && cursor_agent_is_available; then
+        cursor_agent_ready=true
+    fi
+
+    # logic-reviewer: Codex (OpenAI) → OpenCode → Copilot → Cursor → claude-sonnet fallback
     if command -v codex >/dev/null 2>&1; then
         fleet+="codex:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
     elif command -v opencode >/dev/null 2>&1; then
         fleet+="opencode:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
     elif command -v copilot >/dev/null 2>&1; then
         fleet+="copilot:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
+    elif [[ "$cursor_agent_ready" == true ]]; then
+        fleet+="cursor-agent:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
     else
         fleet+="claude-sonnet:implementation-logic-reviewer:correctness and logic bugs, edge cases, regressions"$'\n'
     fi
 
-    # security-reviewer: AGY (Google) → Qwen → Copilot → claude-sonnet fallback
+    # security-reviewer: AGY (Google) → Qwen → Copilot → Cursor → claude-sonnet fallback
     # Prefer different family from logic-reviewer for diversity
     if command -v agy >/dev/null 2>&1; then
         fleet+="agy:implementation-security-reviewer:OWASP vulnerabilities, injection, auth flaws, data exposure"$'\n'
@@ -401,6 +422,8 @@ build_review_fleet() {
         fleet+="qwen:implementation-security-reviewer:OWASP vulnerabilities, injection, auth flaws, data exposure"$'\n'
     elif command -v copilot >/dev/null 2>&1; then
         fleet+="copilot:implementation-security-reviewer:OWASP vulnerabilities, injection, auth flaws, data exposure"$'\n'
+    elif [[ "$cursor_agent_ready" == true ]]; then
+        fleet+="cursor-agent:implementation-security-reviewer:OWASP vulnerabilities, injection, auth flaws, data exposure"$'\n'
     else
         fleet+="claude-sonnet:implementation-security-reviewer:OWASP vulnerabilities, injection, auth flaws, data exposure"$'\n'
     fi
@@ -420,6 +443,9 @@ build_review_fleet() {
     elif command -v qwen >/dev/null 2>&1; then
         fleet+="qwen:implementation-cve-reviewer:known CVEs via web search, library advisories"$'\n'
         log INFO "CVE lookup: Perplexity+AGY unavailable, using Qwen"
+    elif [[ "$cursor_agent_ready" == true ]]; then
+        fleet+="cursor-agent:implementation-cve-reviewer:known CVEs and library advisories from model knowledge"$'\n'
+        log INFO "CVE lookup: no web-search provider, using Cursor CLI"
     else
         fleet+="claude-sonnet:implementation-cve-reviewer:known CVEs via WebSearch tool, library advisories"$'\n'
         log WARN "CVE lookup: no dedicated web-search provider, using Claude WebSearch (degraded)"

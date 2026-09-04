@@ -36,7 +36,9 @@ get_model_catalog() {
         o3-mini)                echo "200|yes|no|yes|codex|budget|active" ;;
         # Antigravity CLI (agy routes to the user's configured Antigravity default)
         agy/default|default)       echo "1000|yes|yes|no|agy|standard|active" ;;
-        # GitHub Copilot CLI service-owned automatic model selection
+        # GitHub Copilot CLI service-owned automatic model selection. Cursor CLI
+        # shares the bare `auto` ID (its own service-side pick); pricing is
+        # provider-aware so the cursor-agent route still bills as subscription.
         auto)                      echo "128|yes|no|no|copilot|standard|active" ;;
         # Claude
         claude-haiku-4.5)      echo "200|yes|yes|yes|claude|budget|active" ;;
@@ -50,11 +52,17 @@ get_model_catalog() {
         claude-opus-4.6)        echo "200|yes|yes|yes|claude|premium|legacy" ;;
         claude-opus-4.8-fast)   echo "1000|yes|yes|yes|claude|premium|active" ;;
         claude-opus-4.6-fast)   echo "200|yes|yes|yes|claude|premium|legacy" ;;
-        # Cursor Agent (Grok via Cursor subscription)
-        grok-4-20)              echo "200|yes|no|no|cursor-agent|standard|active" ;;
-        grok-4-20-thinking)     echo "200|yes|no|yes|cursor-agent|premium|active" ;;
-        composer-2-fast)        echo "200|yes|no|no|cursor-agent|standard|active" ;;
-        composer-2)             echo "200|yes|no|no|cursor-agent|premium|active" ;;
+        # Cursor CLI (`agent`) — Cursor subscription catalog. Curated subset of
+        # `agent models`; any other flat ID from that list is accepted as a pin.
+        composer-2.5)                    echo "200|yes|no|no|cursor-agent|standard|active" ;;
+        composer-2.5-fast)               echo "200|yes|no|no|cursor-agent|standard|active" ;;
+        cursor-grok-4.6-high)            echo "200|yes|no|yes|cursor-agent|standard|active" ;;
+        cursor-grok-4.6-xhigh)           echo "200|yes|no|yes|cursor-agent|premium|active" ;;
+        gpt-5.6-sol-high)                echo "1000|yes|yes|yes|cursor-agent|premium|active" ;;
+        gpt-5.6-luna-high)               echo "1000|yes|yes|yes|cursor-agent|budget|active" ;;
+        claude-sonnet-5-thinking-high)   echo "1000|yes|yes|yes|cursor-agent|standard|active" ;;
+        claude-opus-5-thinking-high)     echo "1000|yes|yes|yes|cursor-agent|premium|active" ;;
+        gemini-3.7-flash-high)           echo "1000|yes|yes|yes|cursor-agent|budget|active" ;;
         # OpenRouter
         z-ai/glm-5)             echo "203|yes|no|no|openrouter|standard|active" ;;
         moonshotai/kimi-k2.5)   echo "262|yes|yes|no|openrouter|standard|active" ;;
@@ -138,10 +146,15 @@ claude-opus-4.8-fast
 claude-opus-4.7
 claude-opus-4.6
 claude-opus-4.6-fast
-grok-4-20
-grok-4-20-thinking
-composer-2-fast
-composer-2
+composer-2.5
+composer-2.5-fast
+cursor-grok-4.6-high
+cursor-grok-4.6-xhigh
+gpt-5.6-sol-high
+gpt-5.6-luna-high
+claude-sonnet-5-thinking-high
+claude-opus-5-thinking-high
+gemini-3.7-flash-high
 z-ai/glm-5
 moonshotai/kimi-k2.5
 deepseek/deepseek-v4-pro

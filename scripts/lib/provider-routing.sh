@@ -240,6 +240,39 @@ _octo_build_provider_env_impl() {
                 fi
             fi
             ;;
+        cursor-agent*)
+            # Cursor CLI defaults to a minimal environment (parity with codex/agy/grok).
+            # HOME must cross the boundary: `agent login` session state lives under
+            # ~/.cursor. Users needing full desktop/session inheritance can opt out.
+            if [[ "${OCTOPUS_ALLOW_FULL_CURSOR_AGENT_ENV:-false}" == "true" ]]; then
+                if [[ "${OCTOPUS_SECURITY_V870:-true}" == "true" ]] && declare -f log_warn >/dev/null 2>&1; then
+                    log_warn "Cursor CLI inherits the parent shell environment because OCTOPUS_ALLOW_FULL_CURSOR_AGENT_ENV=true."
+                fi
+                PROVIDER_ENV_ARRAY=()
+            else
+                if [[ -z "${CURSOR_API_KEY:-}" ]] && declare -f resolve_provider_env >/dev/null 2>&1; then
+                    resolve_provider_env "CURSOR_API_KEY" 2>/dev/null || true
+                fi
+                PROVIDER_ENV_ARRAY=(env -i "PATH=$PATH" "HOME=$HOME" "TERM=${TERM:-dumb}" "TMPDIR=${TMPDIR:-/tmp}")
+                if [[ -n "${CURSOR_API_KEY:-}" ]]; then
+                    PROVIDER_ENV_ARRAY+=("CURSOR_API_KEY=${CURSOR_API_KEY}")
+                fi
+                # Cursor adapter controls are configuration, never credentials.
+                local _cursor_adapter_var
+                for _cursor_adapter_var in \
+                    OCTOPUS_CURSOR_AGENT_MODEL \
+                    OCTOPUS_CURSOR_AGENT_MODE \
+                    OCTOPUS_CURSOR_AGENT_TIMEOUT \
+                    OCTOPUS_CURSOR_AGENT_PROBE_TIMEOUT; do
+                    if [[ -n "${!_cursor_adapter_var:-}" ]]; then
+                        PROVIDER_ENV_ARRAY+=("${_cursor_adapter_var}=${!_cursor_adapter_var}")
+                    fi
+                done
+                if [[ ${#_trace_env[@]} -gt 0 ]]; then
+                    PROVIDER_ENV_ARRAY+=("${_trace_env[@]}")
+                fi
+            fi
+            ;;
         perplexity*)
             # perplexity_execute is a shell function — env -i cannot exec it (#300)
             if [[ -z "${PERPLEXITY_API_KEY:-}" ]]; then

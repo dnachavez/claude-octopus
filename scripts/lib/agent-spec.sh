@@ -216,6 +216,7 @@ octo_model_family() {
         openai/*|gpt-*|o[0-9]*|*chatgpt*) echo openai; return ;;
         google/*|*gemini*) echo google; return ;;
         qwen/*|alibaba/*|*qwen*) echo alibaba; return ;;
+        composer*) echo cursor; return ;;
         x-ai/*|xai/*|*grok*) echo xai; return ;;
         mistralai/*|*mistral*) echo mistral; return ;;
         stealth/*) echo stealth; return ;;
@@ -230,7 +231,8 @@ octo_model_family() {
         claude|claude-*) echo anthropic ;;
         gemini|gemini-*|agy|agy-*|antigravity) echo google ;;
         qwen|qwen-*) echo alibaba ;;
-        grok|grok-*|cursor-agent|cursor-agent-*) echo xai ;;
+        grok|grok-*|cursor-grok-*) echo xai ;;
+        cursor-agent|cursor-agent-*|composer|composer-*) echo cursor ;;
         vibe|vibe-*) echo mistral ;;
         kimi|kimi-*) echo moonshot ;;
         perplexity|perplexity-*) echo perplexity ;;

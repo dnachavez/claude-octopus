@@ -99,6 +99,16 @@ Google seat), perplexity, opencode, openrouter, orcarouter, atlascloud,
 openai-compatible, openai-tools, openai-compatible-agent, cursor-agent, grok,
 qwen, ollama, copilot, vibe, and kimi.
 
+`cursor-agent` is the Cursor CLI (`agent` binary, `cursor` alias). Its auth
+probe lives in `scripts/lib/cursor-agent.sh` (`cursor_agent_is_available`):
+`CURSOR_API_KEY`, else an `authInfo` block in `~/.cursor/cli-config.json`
+(cheap but not always present), else a bounded (`OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT`, 15s) `agent status
+--format json` probe whose yes/no verdict is cached per process and on disk
+(`.cursor-agent-auth-cache`, TTL 600s). Do not re-implement that check in
+consumers. Dispatch is read-only by default
+(`--mode ask`; `--mode plan` for planner roles; full agent mode only for
+implementer roles or `OCTOPUS_CURSOR_AGENT_MODE=agent`).
+
 Retired `gemini` and `gemini-*` IDs are accepted only as compatibility aliases and canonicalize to `agy`. They are not executable providers, are never probed, and are not written to new configuration.
 
 ## Remaining adapter work

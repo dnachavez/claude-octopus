@@ -13,7 +13,7 @@ actual="$(octo_provider_ids health)"
 if [[ "$actual" == "$expected" ]]; then test_pass; else test_fail "health set drift: $actual"; fi
 
 test_case "Council capability preserves current providers and adds commandcode"
-expected="codex commandcode claude agy opencode openrouter orcarouter openai-compatible openai-tools qwen"
+expected="codex commandcode claude agy opencode openrouter orcarouter openai-compatible openai-tools cursor-agent qwen"
 actual="$(octo_provider_ids council)"
 if [[ "$actual" == "$expected" ]]; then test_pass; else test_fail "Council set drift: $actual"; fi
 

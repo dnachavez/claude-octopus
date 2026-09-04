@@ -729,7 +729,7 @@ resolve_octopus_model() {
                 ;;
             copilot*)        resolved_model="auto" ;; # Let the current Copilot CLI choose its supported default.
             qwen*)           resolved_model="qwen3-coder" ;;
-            cursor-agent*)   resolved_model="grok-4-20" ;;
+            cursor-agent*)   resolved_model="auto" ;; # Cursor's service-side pick; pin any `agent models` ID via OCTOPUS_CURSOR_AGENT_MODEL
             opencode-research*) resolved_model="opencode/glm-5.1" ;;
             opencode-fast*)  resolved_model="opencode/deepseek-v4-flash-free" ;;
             opencode*)       resolved_model="opencode/deepseek-v4-flash-free" ;;
@@ -860,10 +860,7 @@ is_agent_available_v2() {
             [[ "$PROVIDER_OPENCODE_INSTALLED" == "true" && "$PROVIDER_OPENCODE_AUTH_METHOD" != "none" ]]
             ;;
         cursor-agent|cursor-agent-*)
-            declare -f _is_cursor_agent_binary >/dev/null 2>&1 && _is_cursor_agent_binary && {
-                [[ -n "${CURSOR_API_KEY:-}" ]] || \
-                grep -Eq '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" 2>/dev/null
-            }
+            declare -f cursor_agent_is_available >/dev/null 2>&1 && cursor_agent_is_available
             ;;
         grok|grok-*)
             declare -f grok_is_available >/dev/null 2>&1 && grok_is_available

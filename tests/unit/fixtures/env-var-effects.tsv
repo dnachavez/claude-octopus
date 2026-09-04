@@ -73,3 +73,5 @@ OCTOPUS_TRACE_MODELS	skip	emits trace lines to stderr; covered indirectly by mod
 OCTOPUS_WORKFLOW_STATE_DIR	covered-by	test-probe-cancellation-cleanup.sh
 OCTOPUS_WORKSPACE	covered-by	test-subagent-stop-gate.sh
 OCTOPUS_X_MODEL	placeholder	doc template fragment, not a real variable
+OCTOPUS_CURSOR_AGENT_MODE	covered-by	test-cursor-agent-provider.sh
+OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT	covered-by	test-cursor-agent-provider.sh

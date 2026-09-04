@@ -222,7 +222,7 @@ _octo_provider_static_readiness() {
             remediation="Install Cursor Agent, then run: agent login"
             if declare -f _is_cursor_agent_binary >/dev/null 2>&1 && _is_cursor_agent_binary; then
                 if _octo_value_has_nonwhitespace "${CURSOR_API_KEY:-}" ||
-                   grep -Ec '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" >/dev/null 2>&1; then
+                   { declare -f cursor_agent_session_authenticated >/dev/null 2>&1 && cursor_agent_session_authenticated; }; then
                     status="available"; reason_code="ready"; remediation=""
                 else
                     status="degraded"; reason_code="auth-missing"; remediation="Run: agent login, or set CURSOR_API_KEY."

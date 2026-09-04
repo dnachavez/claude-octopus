@@ -1004,9 +1004,8 @@ check_provider_health() {
                 echo "cursor-agent: 'agent' binary is not Cursor Agent CLI" >&2
                 return 1
             fi
-            # Check auth: env var or Cursor session (authInfo in cli-config.json)
-            if [[ -z "${CURSOR_API_KEY:-}" ]] && \
-               ! grep -Eq '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" 2>/dev/null; then
+            # Check auth: env var or Cursor session (lib/cursor-agent.sh owns the probe)
+            if ! cursor_agent_is_authenticated; then
                 echo "cursor-agent: not authenticated (run: agent login or set CURSOR_API_KEY)" >&2
                 return 1
             fi
@@ -1339,13 +1338,11 @@ detect_providers() {
         result="${result}qwen:${qwen_auth} "
     fi
 
-    # Detect Cursor Agent CLI (Grok via Cursor subscription)
+    # Detect Cursor CLI (`agent`; Cursor subscription models)
     if { ! declare -f octo_provider_allowed >/dev/null 2>&1 || octo_provider_allowed cursor-agent; } && declare -f _is_cursor_agent_binary >/dev/null 2>&1 && _is_cursor_agent_binary; then
         local cursor_auth="none"
-        if [[ -n "${CURSOR_API_KEY:-}" ]]; then
-            cursor_auth="env:CURSOR_API_KEY"
-        elif grep -Eq '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" 2>/dev/null; then
-            cursor_auth="cursor-session"
+        if declare -f cursor_agent_auth_method >/dev/null 2>&1; then
+            cursor_auth="$(cursor_agent_auth_method)"
         fi
         result="${result}cursor-agent:${cursor_auth} "
     fi

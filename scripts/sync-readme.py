@@ -30,6 +30,7 @@ PUBLIC_EXTERNAL_PROVIDERS = (
     ("OpenRouter", "OpenRouter API key"),
     ("OrcaRouter", "OrcaRouter API key"),
     ("OpenCode", "OpenCode CLI"),
+    ("Cursor CLI", "Cursor CLI (`agent`)"),
     ("Grok", "xAI API key (Grok)"),
     ("Kimi Code", "Kimi Code CLI"),
 )

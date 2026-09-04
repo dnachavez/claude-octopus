@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# xAI Grok CLI provider (standalone `grok` binary — NOT cursor-agent's grok-4-20).
+# xAI Grok CLI provider (standalone `grok` binary — NOT the cursor-agent seat's cursor-grok-* models).
 # Added by octo-grok-patch.sh. No top-level set -e*: sourced libs must not alter
 # parent shell options (orchestrate.sh already sets `set -eo pipefail`).
 # Auth: $XAI_API_KEY or ~/.grok/auth.json (grok login session).

@@ -37,10 +37,15 @@ model	claude-opus-4.8-fast	10.00	50.00	Anthropic fast
 model	claude-opus-4.7	5.00	25.00	Anthropic legacy
 model	claude-opus-4.6	5.00	25.00	Anthropic legacy
 model	claude-opus-4.6-fast	30.00	150.00	Anthropic legacy fast
-model	grok-4-20	0.00	0.00	Cursor subscription route
-model	grok-4-20-thinking	0.00	0.00	Cursor subscription route
-model	composer-2-fast	0.00	0.00	Cursor subscription route
-model	composer-2	0.00	0.00	Cursor subscription route
+model	composer-2.5	0.00	0.00	Cursor subscription route
+model	composer-2.5-fast	0.00	0.00	Cursor subscription route
+model	cursor-grok-4.6-high	0.00	0.00	Cursor subscription route
+model	cursor-grok-4.6-xhigh	0.00	0.00	Cursor subscription route
+model	gpt-5.6-sol-high	0.00	0.00	Cursor subscription route
+model	gpt-5.6-luna-high	0.00	0.00	Cursor subscription route
+model	claude-sonnet-5-thinking-high	0.00	0.00	Cursor subscription route
+model	claude-opus-5-thinking-high	0.00	0.00	Cursor subscription route
+model	gemini-3.7-flash-high	0.00	0.00	Cursor subscription route
 model	z-ai/glm-5	0.80	2.56	OpenRouter
 model	moonshotai/kimi-k2.5	0.45	2.25	OpenRouter
 model	deepseek/deepseek-v4-pro	0.435	0.87	OpenRouter current DeepSeek route

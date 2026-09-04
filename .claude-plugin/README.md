@@ -2,7 +2,7 @@
 
 # Claude Octopus
 
-**One prompt. Up to eleven external AI integrations checking each other's work.** Claude Octopus turns Claude Code into a multi-LLM orchestration engine — Codex, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OrcaRouter, OpenCode, Grok, and Kimi Code all contribute perspectives, then a 75% consensus gate catches disagreements before they ship.
+**One prompt. Up to twelve external AI integrations checking each other's work.** Claude Octopus turns Claude Code into a multi-LLM orchestration engine — Codex, Antigravity CLI, Copilot, Qwen, Ollama, Perplexity, OpenRouter, OrcaRouter, OpenCode, Cursor CLI, Grok, and Kimi Code all contribute perspectives, then a 75% consensus gate catches disagreements before they ship.
 
 **Claude-native first, Octopus for escalation.** Use Claude-native `/init`, `/review`, and `/security-review` when Claude is enough. Use Octopus when you want multiple model opinions, adversarial review, or stricter multi-LLM workflows.
 
@@ -81,7 +81,7 @@ Upgrading from v9? Read the [v10 migration guide](../docs/V10-MIGRATION.md).
 
 - Claude Code v2.1.14+
 - Zero external providers needed (Claude is built in)
-- Optional: Codex CLI, Antigravity CLI (`agy`), Copilot, Qwen, Ollama, Perplexity API key, OpenRouter API key, OrcaRouter API key, OpenCode CLI, xAI API key (Grok), and Kimi Code CLI
+- Optional: Codex CLI, Antigravity CLI (`agy`), Copilot, Qwen, Ollama, Perplexity API key, OpenRouter API key, OrcaRouter API key, OpenCode CLI, Cursor CLI (`agent`), xAI API key (Grok), and Kimi Code CLI
 - Five external integrations cost nothing extra when you already have the relevant subscriptions or local runtime (OAuth or local)
 
 ## One Limitation

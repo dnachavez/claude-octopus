@@ -89,12 +89,9 @@ get_dispatch_strategy() {
     fi
     _gds_provider_allowed ollama && _gds_not_quota_dead ollama && command -v ollama >/dev/null 2>&1 && curl -sf http://localhost:11434/api/tags &>/dev/null && has_ollama=true
     if _gds_provider_allowed cursor-agent && _gds_not_quota_dead cursor-agent; then
-        if declare -f cursor_agent_is_available >/dev/null 2>&1; then
-            cursor_agent_is_available && has_cursor_agent=true
-        elif declare -f _is_cursor_agent_binary >/dev/null 2>&1 && _is_cursor_agent_binary; then
-            if [[ -n "${CURSOR_API_KEY:-}" ]] || grep -Eq '"authInfo"[[:space:]]*:[[:space:]]*\{' "${HOME}/.cursor/cli-config.json" 2>/dev/null; then
-                has_cursor_agent=true
-            fi
+        # lib/cursor-agent.sh owns binary identity and auth (env key or session).
+        if declare -f cursor_agent_is_available >/dev/null 2>&1 && cursor_agent_is_available; then
+            has_cursor_agent=true
         fi
     fi
 

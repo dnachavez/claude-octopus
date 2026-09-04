@@ -82,7 +82,8 @@ claude-octopus/
 │   │   ├── codex/CLAUDE.md     # Codex-specific
 │   │   ├── claude/CLAUDE.md    # Claude orchestrator
 │   │   ├── ollama/CLAUDE.md    # Ollama local LLM
-│   │   └── copilot/CLAUDE.md   # GitHub Copilot CLI
+│   │   ├── copilot/CLAUDE.md   # GitHub Copilot CLI
+│   │   └── cursor-agent/CLAUDE.md  # Cursor CLI (`agent`)
 │   └── workflows/CLAUDE.md      # Double Diamond methodology
 ```
 
@@ -99,6 +100,7 @@ claude --add-dir=config/workflows          # Double Diamond
 | `providers/claude` | Understanding Claude's orchestrator role |
 | `providers/ollama` | Working with Ollama local LLM |
 | `providers/copilot` | Working with GitHub Copilot CLI |
+| `providers/cursor-agent` | Working with Cursor CLI (`agent`) |
 | `workflows` | Learning about Double Diamond methodology |
 
 ---

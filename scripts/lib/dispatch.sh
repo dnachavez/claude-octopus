@@ -5,6 +5,9 @@ source "${_profile_lib_dir}/provider-registry.sh" || { echo "dispatch: failed to
 if ! declare -f octopus_resolve_reasoning_level >/dev/null 2>&1; then
     source "${_profile_lib_dir}/execution-profile.sh" 2>/dev/null || true
 fi
+if ! declare -f cursor_agent_resolve_mode >/dev/null 2>&1; then
+    source "${_profile_lib_dir}/cursor-agent.sh" 2>/dev/null || true
+fi
 # Claude Octopus — Agent Dispatch & Model Resolution
 # ═══════════════════════════════════════════════════════════════════════════════
 # Extracted from orchestrate.sh in v9.7.7 monolith decomposition.
@@ -609,13 +612,21 @@ get_agent_command() {
             fi
             echo "${PLUGIN_DIR}/scripts/helpers/commandcode-exec.sh ${model} ${commandcode_mode}"
             ;;
-        cursor-agent)  # v9.23.0: Cursor Agent CLI — Grok 4.20 via Cursor subscription
+        cursor-agent)  # Cursor CLI (`agent`) — Cursor subscription models, default `auto`
             if ! model=$(get_agent_model "$agent_type" "$phase" "$role"); then
                 return 1
             fi
+            # `agent -p` has write+shell access, so seats are read-only unless
+            # the role writes code: --mode ask (default) / --mode plan / none.
+            # Role table + OCTOPUS_CURSOR_AGENT_MODE override live in
+            # lib/cursor-agent.sh (cursor_agent_resolve_mode), matching the
+            # OCTOPUS_CODEX_SANDBOX / OCTOPUS_COMMANDCODE_PERMISSION_MODE precedent.
+            local cursor_mode cursor_mode_flag
+            cursor_mode="$(cursor_agent_resolve_mode "$role")"
+            cursor_mode_flag="$(cursor_agent_mode_flag "$cursor_mode")"
             # NOTE: bare ${model} (no quotes) — downstream uses `read -ra` which
             # does NOT interpret quotes; literal " would be passed to --model.
-            echo "agent --trust --output-format text --model ${model}"
+            echo "agent --trust --output-format text${cursor_mode_flag:+ ${cursor_mode_flag}} --model ${model}"
             ;;
         vibe|vibe-research)  # Mistral Vibe — interactive CLI (model in ~/.vibe/config.toml)
             # Routed through helpers/vibe-exec.sh: vibe's -p only accepts the
@@ -1167,7 +1178,7 @@ find_capable_fallback() {
         perplexity)
             candidates=(sonar sonar-pro) ;;
         cursor-agent)
-            candidates=(composer-2-fast composer-2 grok-4-20 grok-4-20-thinking) ;;
+            candidates=(auto composer-2.5-fast composer-2.5 gpt-5.6-sol-high claude-sonnet-5-thinking-high) ;;
     esac
 
     for candidate in "${candidates[@]}"; do

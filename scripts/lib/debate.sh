@@ -52,6 +52,7 @@ grapple_debate() {
     local agent_b="agy" label_b="Antigravity" label_b_upper="ANTIGRAVITY"
     local agent_c="claude-sonnet" label_c="Sonnet" label_c_upper="SONNET"
 
+    local _debate_config_seats=false
     local _debate_config_file="${HOME}/.claude-octopus/config/providers.json"
     if [[ -f "$_debate_config_file" ]] && command -v jq >/dev/null 2>&1; then
         local _participants _participant_count
@@ -85,10 +86,30 @@ grapple_debate() {
                 _slot_idx=$((_slot_idx + 1))
             done <<< "$_participants"
             if [[ "$_resolved_count" -gt 0 ]]; then
+                _debate_config_seats=true
                 log INFO "Debate participants (from config): $label_a ($agent_a) vs $label_b ($agent_b) vs $label_c ($agent_c)"
             else
                 log INFO "Debate config had no valid participants; using defaults: $label_a ($agent_a) vs $label_b ($agent_b) vs $label_c ($agent_c)"
             fi
+        fi
+    fi
+
+    # Availability fallback for the release-default seats only (config-selected
+    # participants are never overridden): when Antigravity (slot B) or Codex
+    # (slot A) is not usable but Cursor CLI is, seat Cursor instead of dispatching
+    # to a provider that is guaranteed to fail.
+    if [[ "$_debate_config_seats" != true ]] && declare -f is_agent_available_v2 >/dev/null 2>&1 \
+        && is_agent_available_v2 cursor-agent 2>/dev/null; then
+        if [[ "$agent_b" == "agy" ]] && ! is_agent_available_v2 agy 2>/dev/null; then
+            agent_b="cursor-agent"
+            label_b=$(agent_display_label cursor-agent)
+            label_b_upper=$(agent_display_label_upper cursor-agent)
+            log INFO "Debate: Antigravity unavailable, seating Cursor CLI as participant B"
+        elif [[ "$agent_a" == "codex" ]] && ! is_agent_available_v2 codex 2>/dev/null; then
+            agent_a="cursor-agent"
+            label_a=$(agent_display_label cursor-agent)
+            label_a_upper=$(agent_display_label_upper cursor-agent)
+            log INFO "Debate: Codex unavailable, seating Cursor CLI as participant A"
         fi
     fi
 
