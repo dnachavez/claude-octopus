@@ -57,6 +57,10 @@ octo_route_task_class() {
 }
 
 _octo_route_provider_for_model() {
+  case "${1:-}" in
+    composer-*|cursor-agent*|cursor-grok-*) printf '%s\n' cursor-agent; return 0 ;;
+    grok-*) printf '%s\n' grok; return 0 ;;
+  esac
   case "$(octo_model_family "${1:-}")" in
     anthropic)
       case "${1:-}" in

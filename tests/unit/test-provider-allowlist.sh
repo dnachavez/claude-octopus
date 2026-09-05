@@ -140,6 +140,24 @@ if assert_contains "$fleet" "agy|" "legacy gemini token should make AGY eligible
     test_pass
 fi
 
+test_case "build-fleet rejects an available-but-denied candidate set"
+denied_checker="$TEST_TMP_DIR/denied-provider-checker.sh"
+cat > "$denied_checker" <<'SH'
+#!/bin/bash
+printf '%s\n' 'codex:available'
+SH
+chmod +x "$denied_checker"
+set +e
+fleet=$(OCTOPUS_PROVIDER_CHECKER="$denied_checker" OCTO_ALLOWED_PROVIDERS=agy \
+    "$BUILD_FLEET" research quick fixture 2>/dev/null)
+fleet_rc=$?
+set -e
+if [[ "$fleet_rc" -ne 0 && -z "$fleet" ]]; then
+    test_pass
+else
+    test_fail "denied candidates must produce a failed empty fleet: rc=$fleet_rc fleet='$fleet'"
+fi
+
 test_case "quick research never emits a disallowed Claude fallback"
 codex_only_checker="$TEST_TMP_DIR/codex-only-checker.sh"
 cat > "$codex_only_checker" <<'SH'

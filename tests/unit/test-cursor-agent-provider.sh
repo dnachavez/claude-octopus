@@ -200,7 +200,7 @@ CALLS_FILE="$TEST_TMP_DIR/status-calls-1.txt"; : > "$CALLS_FILE"
 probe_output=$(
     unset CURSOR_API_KEY
     export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${CURSOR_PROBE_PATH}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
-    export CURSOR_MOCK_STATUS_JSON='{"status":"authenticated","isAuthenticated":true,"userInfo":{"email":"secret@example.test"}}'
+    export 'CURSOR_MOCK_STATUS_JSON={"status":"authenticated","isAuthenticated":true,"userInfo":{"email":"secret@example.test"}}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     if cursor_agent_is_available; then
         echo "available:$(cursor_agent_auth_method)"
@@ -231,6 +231,7 @@ fi
 
 test_case "session status probe stays bounded by OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT"
 reset_mocks; write_cursor_status_mock
+CALLS_FILE="$TEST_TMP_DIR/status-calls-bounded.txt"; : > "$CALLS_FILE"
 # Force the portable fallback watchdog: PATH holds only the mock dir (no
 # coreutils timeout/gtimeout on any host) plus a grep shim for the verdict parse.
 rm -f "$MOCK_BIN_DIR/timeout"
@@ -238,16 +239,16 @@ printf '#!/bin/bash\nexec /usr/bin/grep "$@"\n' > "$MOCK_BIN_DIR/grep"; chmod +x
 SECONDS=0
 probe_output=$(
     unset CURSOR_API_KEY
-    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${MOCK_BIN_DIR}"
-    export CURSOR_MOCK_STATUS_SLEEP=5 OCTOPUS_CURSOR_AGENT_PROBE_TIMEOUT=1 OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT=1
-    export CURSOR_MOCK_STATUS_JSON='{"isAuthenticated":true}'
+    export "HOME=${EMPTY_CURSOR_HOME}" "PATH=${MOCK_BIN_DIR}" "CURSOR_STATUS_CALLS=${CALLS_FILE}"
+    export "CURSOR_MOCK_STATUS_SLEEP=5" "OCTOPUS_CURSOR_AGENT_PROBE_TIMEOUT=1" "OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT=1"
+    export 'CURSOR_MOCK_STATUS_JSON={"isAuthenticated":true}'
     _CURSOR_AGENT_SESSION_AUTH_CACHE=""
     cursor_agent_is_available && echo "available" || echo "unavailable"
 )
-if [[ "$probe_output" == "unavailable" && $SECONDS -le 3 ]]; then
+if [[ "$probe_output" == "unavailable" && $SECONDS -le 3 ]] && grep -q "status --format json" "$CALLS_FILE"; then
     test_pass
 else
-    test_fail "status probe was not bounded (result=$probe_output elapsed=${SECONDS}s)"
+    test_fail "status probe was not exercised and bounded (result=$probe_output elapsed=${SECONDS}s calls=$(cat "$CALLS_FILE" 2>/dev/null))"
 fi
 
 test_case "a non-Cursor 'agent' binary short-circuits before the status probe"

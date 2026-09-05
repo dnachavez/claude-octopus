@@ -165,7 +165,7 @@ _cursor_agent_session_probe() {
     # Keep whatever was printed even on a non-zero exit; the verdict is the
     # boolean, not the exit status.
     status_output=$(_cursor_agent_run_with_timeout "$status_timeout" agent status --format json </dev/null 2>/dev/null) || true
-    if printf '%s' "$status_output" | grep -Eq '"isAuthenticated"[[:space:]]*:[[:space:]]*true'; then
+    if grep -Ec '"isAuthenticated"[[:space:]]*:[[:space:]]*true' >/dev/null <<< "$status_output"; then
         _CURSOR_AGENT_SESSION_AUTH_CACHE="yes"
         _cursor_agent_auth_cache_write yes
         return 0

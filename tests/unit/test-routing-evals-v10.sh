@@ -107,6 +107,23 @@ else
     test_fail "unresolved verifier claimed coverage: $retain_decision"
 fi
 
+for route_case in \
+    'composer-2.5|cursor-agent' \
+    'cursor-agent-auto|cursor-agent' \
+    'cursor-grok-4.6-high|cursor-agent' \
+    'grok-4-fast|grok'; do
+    route_model="${route_case%%|*}"
+    expected_provider="${route_case#*|}"
+    test_case "model route: $route_model uses $expected_provider"
+    route_decision="$(bash -c 'source "$1"; octo_route_decision balanced off "$2" "" false "" ""' _ "$PROFILE_LIB" "$route_model")"
+    if jq -e --arg provider "$expected_provider" --arg model "$route_model" \
+        '.provider == $provider and .model == $model' <<< "$route_decision" >/dev/null; then
+        test_pass
+    else
+        test_fail "expected $route_model to use $expected_provider, got $route_decision"
+    fi
+done
+
 test_case "both synchronous and background dispatch pass byte counts to command routing"
 if grep -q 'octo_prompt_byte_length.*enhanced_prompt' "$PROJECT_ROOT/scripts/lib/agent-sync.sh" &&
    grep -q 'octo_prompt_byte_length.*enhanced_prompt' "$PROJECT_ROOT/scripts/lib/spawn.sh"; then
