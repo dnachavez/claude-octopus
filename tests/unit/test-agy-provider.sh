@@ -1403,7 +1403,7 @@ test_agy_docs_cost_and_marker() {
     test_case "docs show agy cost controls and distinct provider marker"
 
     if grep -q 'OCTOPUS_AGY_MODEL' "$PROJECT_ROOT/CLAUDE.md" && \
-       grep -q 'Four providers cost nothing extra' "$PROJECT_ROOT/README.md" && \
+       grep -q 'Antigravity CLI.*existing subscriptions' "$PROJECT_ROOT/README.md" && \
        grep -q '🧭 Antigravity CLI (`agy`)' "$PROJECT_ROOT/README.md" && \
        ! grep -q '🟢 Antigravity CLI (`agy`)' "$PROJECT_ROOT/README.md"; then
         test_pass
@@ -1433,8 +1433,7 @@ test_agy_slash_command_visibility() {
        grep -q 'Antigravity CLI' "$PROJECT_ROOT/.claude/skills/skill-debate/SKILL.md" && \
        grep -q 'Antigravity CLI' "$PROJECT_ROOT/docs/COMMAND-REFERENCE.md" && \
        grep -q 'Antigravity CLI' "$PROJECT_ROOT/SECURITY.md" && \
-       grep -q 'up to 11 external AI integrations' "$PROJECT_ROOT/PRODUCT.md" && \
-       grep -q 'Four providers can cost nothing extra' "$PROJECT_ROOT/PRODUCT.md" && \
+       grep -q 'providers can cost nothing extra.*Antigravity CLI' "$PROJECT_ROOT/PRODUCT.md" && \
        grep -q 'codex agy' "$PROJECT_ROOT/tests/test-fleet-diversity.sh" && \
        grep -q 'codex, agy' "$PROJECT_ROOT/tests/unit/test-research-fanout-static.sh"; then
         test_pass
