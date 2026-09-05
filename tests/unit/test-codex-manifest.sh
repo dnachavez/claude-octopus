@@ -15,16 +15,18 @@ else
     test_fail "Codex supports at most three interface.defaultPrompt entries"
 fi
 
-test_case "Codex metadata names all eleven external providers"
+test_case "Codex metadata names all twelve external providers"
 if jq -e '
+    (.description | contains("Cursor CLI")) and
     (.description | contains("Kimi Code")) and
-    (.interface.shortDescription | contains("11 providers")) and
-    (.interface.longDescription | contains("eleven external AI providers")) and
+    (.interface.shortDescription | contains("12 providers")) and
+    (.interface.longDescription | contains("twelve external AI providers")) and
+    (.interface.longDescription | contains("Cursor CLI")) and
     (.interface.longDescription | contains("Kimi Code"))
 ' "$PROJECT_ROOT/.codex-plugin/plugin.json" >/dev/null; then
     test_pass
 else
-    test_fail "Codex metadata must count eleven providers and include Kimi Code"
+    test_fail "Codex metadata must count twelve providers and include Cursor CLI and Kimi Code"
 fi
 
 test_summary
