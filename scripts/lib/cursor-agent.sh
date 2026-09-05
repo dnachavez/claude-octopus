@@ -240,7 +240,7 @@ cursor_agent_auth_method() {
 # Every seat that only reads must opt down explicitly:
 #   ask   → --mode ask   (Q&A, read-only)                  default for research/review/council
 #   plan  → --mode plan  (read-only planning, no edits)    planners and architects
-#   agent → no --mode    (full tool access)                implementer roles only
+#   agent → --force      (unattended full tool access)     implementer roles only
 # Mirrors OCTOPUS_CODEX_SANDBOX / OCTOPUS_COMMANDCODE_PERMISSION_MODE.
 cursor_agent_mode_for_role() {
     case "${1:-}" in

@@ -1,6 +1,6 @@
 # AI Agent Handoff
 
-Last updated: 2026-09-04
+Last updated: 2026-08-30
 Status: PR #984 contains the install, setup, readiness, dispatch, cost, and
 uninstall simplification. Two findings from the latest exact-head CodeRabbit
 round have verified fixes in the branch head, independent Fable 5 review
@@ -19,95 +19,6 @@ threads, wait for exact-head checks and approval, then squash-merge PR #984 and
 run the guarded v10.1.0 release workflow. The user authorized merge, release,
 shared-marketplace publication, and cleanup of only the related worktrees
 proven safe to remove.
-
-## Cursor CLI First-Class Provider (branch `add-cursor-cli-provider`, 2026-09-04)
-
-- Scope: promote the existing `cursor-agent` seat (Cursor CLI, binary `agent`)
-  from a stale "Grok 4.20 via Cursor" side seat to a peer provider for a
-  Claude Code + Codex (ChatGPT OAuth) + Cursor CLI setup. Decisions confirmed
-  by the user: default model `auto`; council capability plus review/debate
-  cascades; `OCTOPUS_CURSOR_AGENT_MODE=ask|plan|agent` with read-only default;
-  Cursor promoted to the eleventh documented public provider.
-- Auth: on build 2026.06.24 the `authInfo` block was absent from
-  `~/.cursor/cli-config.json` at session start while `agent status` reported
-  authenticated; the CLI wrote the block later in the session. The file grep
-  is therefore a cheap first check, not a reliable one.
-  `scripts/lib/cursor-agent.sh` now owns one
-  bounded `agent status --format json` probe (network-bound, 3-12s observed;
-  `OCTOPUS_CURSOR_AGENT_STATUS_TIMEOUT` default 15s) whose verdict is cached
-  per process and on disk at `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE` when set,
-  otherwise `${XDG_CACHE_HOME:-$HOME/.cache}/claude-octopus/cursor-agent-auth-verdict`
-  (TTL 600s, negative 60s, never in the workspace, symlinks refused, atomic
-  replace; the
-  `authInfo` file check still short-circuits); providers, preflight, smoke, model
-  resolver, and Embrace call the helper instead of grepping the file. The
-  fallback watchdog in `_cursor_agent_run_with_timeout` detaches its stdio so
-  fast probes no longer stall a caller's command substitution.
-- Dispatch: `agent --trust --output-format text [--mode ask|plan] --model <m>`;
-  role table in `cursor_agent_mode_for_role`, override in
-  `cursor_agent_resolve_mode`. `provider-routing.sh` isolates Cursor under
-  `env -i` (PATH, HOME, TERM, TMPDIR, CURSOR_API_KEY, `OCTOPUS_CURSOR_AGENT_*`)
-  with `OCTOPUS_ALLOW_FULL_CURSOR_AGENT_ENV=true` opt-out.
-- Catalog: `models.sh`, `config/model-pricing.tsv`, and the dispatch fallback
-  list use live `agent models` IDs (composer-2.5, cursor-grok-4.6-*,
-  gpt-5.6-sol/luna-high, claude-sonnet/opus-5-thinking-high,
-  gemini-3.7-flash-high). Bracket overrides are rejected by
-  `validate_model_name`; flat IDs only. Vendor family (`agent-spec.sh`,
-  `execution-profile.sh`) maps composer/cursor-agent to `cursor` and
-  cursor-grok to `xai`.
-- Fleet: registry row gains `council`; the limitation row is removed.
-  `review.sh` cascades seat Cursor after Copilot (logic, security, CVE) and
-  the config-participants case accepts `cursor-agent`; `debate.sh` seats
-  Cursor when Antigravity or Codex is unusable; `build-fleet.sh` labels the
-  seat "Cursor Perspective". `OCTOPUS_COUNCIL_DEFAULT_PROVIDERS_DEFAULT` is
-  unchanged because `build_council_order` appends every admitted
-  council-capable provider.
-- Docs: `scripts/sync-readme.py` lists Cursor CLI as a public provider
-  (counts regenerate to eleven); README, ARCHITECTURE, TROUBLESHOOTING,
-  DEVELOPER, PROVIDERS, `.codex-plugin/plugin.json`, CHANGELOG, and the new
-  `config/providers/cursor-agent/CLAUDE.md` describe Cursor directly and the
-  standalone `grok` CLI separately.
-- Tests: `tests/unit/test-cursor-agent-provider.sh` grew from 7 to 27 cases
-  (status-probe auth, bounded probe, cache, legacy authInfo, role modes,
-  dispatch strings, env isolation, registry, family, cascades, docs guards).
-  Expectations updated in registry-contracts, model-metadata-parity,
-  usage-report, readme-release-sync, shared-marketplace-sync, and
-  agy-provider suites.
-- Verified (2026-09-04, this branch head): `CI=true GITHUB_ACTIONS=true make
-  ci-changed` selected the full matrix and passed 16/16 smoke, 305/305 unit,
-  and 8/8 integration suites (5629 cases, 0 failures); `make sync-check`,
-  `git diff --check`, and `git diff origin/main...HEAD --summary | grep "mode
-  change"` (empty) passed. Focused suites, all passing:
-  `bash tests/unit/test-cursor-agent-provider.sh` (33/33),
-  `bash tests/unit/test-provider-registry-contracts.sh` (15/15),
-  `bash tests/unit/test-provider-registry-parity.sh` (16/16),
-  `bash tests/unit/test-provider-neutral-council.sh` (6/6),
-  `bash tests/unit/test-model-metadata-parity.sh` (6/6),
-  `bash tests/unit/test-readme-release-sync.sh` (11/11),
-  `bash tests/unit/test-shared-marketplace-sync.sh` (17/17),
-  `bash tests/unit/test-env-var-effects.sh` (9/9),
-  `bash tests/unit/test-agy-provider.sh` (52/52; one earlier run hit a
-  transient 1s mock timeout under concurrent load and passed twice on rerun),
-  `bash tests/test-fleet-diversity.sh` (42/42). Live, read-only:
-  `scripts/helpers/check-providers.sh` reports `cursor-agent:available` with
-  and without `CURSOR_API_KEY`; `bash scripts/helpers/build-fleet.sh review
-  standard test` seats cursor-agent; one real dispatch through the exact
-  command string (`agent --trust --output-format text --mode ask --model auto
-  -p ""`, prompt on stdin) returned `ok`.
-- CodeRabbit round 1 (7 threads) is addressed: per-slot debate fallback that
-  also replaces both unavailable defaults, verdict cache moved to the user
-  cache directory with symlink refusal and atomic replace, canonical-ID
-  matching for configured review participants, PATH-restricted watchdog test,
-  OrcaRouter in the README comparison row, and this verification record. The
-  docstring-coverage pre-merge warning is advisory (bash helpers) and was not
-  acted on.
-- Delivery: PR [#1001](https://github.com/nyldn/claude-octopus/pull/1001)
-  from fork branch `dnachavez:add-cursor-cli-provider` (remote `fork`,
-  `git@github.com:dnachavez/claude-octopus.git`); `origin` is read-only for
-  this account. Fork PRs stall at `action_required` after every push and
-  need maintainer approval of the workflow run.
-- Tracking: `bd` is not installed in this worktree, so no Beads issue was
-  created; this section is the record.
 
 ## Install, Setup, and Everyday-Use Simplification
 

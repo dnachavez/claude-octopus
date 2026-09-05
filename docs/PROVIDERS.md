@@ -108,8 +108,8 @@ The cache path resolves to `OCTOPUS_CURSOR_AGENT_AUTH_CACHE_FILE` when set,
 otherwise `${XDG_CACHE_HOME:-$HOME/.cache}/claude-octopus/cursor-agent-auth-verdict`
 (TTL 600s; never in the workspace, symlinks refused, atomic replace). Do not re-implement that check in
 consumers. Dispatch is read-only by default
-(`--mode ask`; `--mode plan` for planner roles; full agent mode only for
-implementer roles or `OCTOPUS_CURSOR_AGENT_MODE=agent`).
+(`--mode ask`; `--mode plan` for planner roles; `--force` only for implementer
+roles or `OCTOPUS_CURSOR_AGENT_MODE=agent`).
 
 Retired `gemini` and `gemini-*` IDs are accepted only as compatibility aliases and canonicalize to `agy`. They are not executable providers, are never probed, and are not written to new configuration.
 
