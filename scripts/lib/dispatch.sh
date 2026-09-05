@@ -616,8 +616,8 @@ get_agent_command() {
             if ! model=$(get_agent_model "$agent_type" "$phase" "$role"); then
                 return 1
             fi
-            # `agent -p` has write+shell access, so seats are read-only unless
-            # the role writes code: --mode ask (default) / --mode plan / none.
+            # `agent -p` has write and shell access, so seats are read-only
+            # unless the role writes code: --mode ask, --mode plan, or --force.
             # Role table + OCTOPUS_CURSOR_AGENT_MODE override live in
             # lib/cursor-agent.sh (cursor_agent_resolve_mode), matching the
             # OCTOPUS_CODEX_SANDBOX / OCTOPUS_COMMANDCODE_PERMISSION_MODE precedent.

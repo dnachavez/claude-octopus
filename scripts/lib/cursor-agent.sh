@@ -267,10 +267,12 @@ cursor_agent_resolve_mode() {
     echo "$mode"
 }
 
-# Emit the argv fragment for a resolved mode ("" for full agent mode).
+# Emit the argv fragment for a resolved mode. Agent mode uses --force so
+# unattended implementers may run tools without stopping for approval.
 cursor_agent_mode_flag() {
     case "${1:-ask}" in
         ask|plan) printf -- '--mode %s' "$1" ;;
+        agent) printf '%s' '--force' ;;
         *) printf '' ;;
     esac
 }
@@ -303,6 +305,7 @@ cursor_agent_execute() {
     cursor_mode="$(cursor_agent_resolve_mode "$role")"
     case "$cursor_mode" in
         ask|plan) mode_args=(--mode "$cursor_mode") ;;
+        agent) mode_args=(--force) ;;
     esac
     local response exit_code
     response=$(printf '%s' "$prompt" | _cursor_agent_run_with_timeout "$timeout" agent -p "" --trust --output-format text "${mode_args[@]+"${mode_args[@]}"}" 2>&1) && exit_code=0 || exit_code=$?

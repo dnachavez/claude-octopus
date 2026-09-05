@@ -400,7 +400,7 @@ if [[ "$(OCTOPUS_CURSOR_AGENT_MODE=agent cursor_agent_resolve_mode researcher 2>
    [[ "$(OCTOPUS_CURSOR_AGENT_MODE=yolo cursor_agent_resolve_mode implementer 2>/dev/null)" == "agent" ]] &&
    [[ "$(OCTOPUS_CURSOR_AGENT_MODE=yolo cursor_agent_resolve_mode researcher 2>/dev/null)" == "ask" ]] &&
    [[ "$(cursor_agent_mode_flag ask)" == "--mode ask" ]] &&
-   [[ -z "$(cursor_agent_mode_flag agent)" ]]; then
+   [[ "$(cursor_agent_mode_flag agent)" == "--force" ]]; then
     test_pass
 else
     test_fail "mode override handling drifted"
@@ -428,9 +428,11 @@ chmod +x "$MOCK_BIN_DIR/timeout" "$MOCK_BIN_DIR/agent"
 if PATH="${MOCK_BIN_DIR}:/usr/bin:/bin" CURSOR_API_KEY=test ARGV_FILE="${ARGV_FILE}" \
     cursor_agent_execute cursor-agent "prompt" "" researcher >/dev/null 2>&1 &&
    grep -q -- '--mode ask' "$ARGV_FILE" &&
+   ! grep -q -- '--force' "$ARGV_FILE" &&
    PATH="${MOCK_BIN_DIR}:/usr/bin:/bin" CURSOR_API_KEY=test ARGV_FILE="${ARGV_FILE}" \
     cursor_agent_execute cursor-agent "prompt" "" implementer >/dev/null 2>&1 &&
-   ! grep -q -- '--mode' "$ARGV_FILE"; then
+   ! grep -q -- '--mode' "$ARGV_FILE" &&
+   grep -q -- '--force' "$ARGV_FILE"; then
     test_pass
 else
     test_fail "cursor_agent_execute did not honour the role mode contract: $(cat "$ARGV_FILE" 2>/dev/null)"
@@ -458,10 +460,10 @@ else
     test_fail "unexpected researcher dispatch: '$cmd'"
 fi
 
-test_case "dispatch omits --mode for implementer roles and uses --mode plan for planners"
+test_case "dispatch force-allows implementers and uses --mode plan for planners"
 impl_cmd=$(HOME="$EMPTY_CURSOR_HOME" get_agent_command cursor-agent tangle implementer 2>/dev/null || true)
 plan_cmd=$(HOME="$EMPTY_CURSOR_HOME" get_agent_command cursor-agent grasp planner 2>/dev/null || true)
-if [[ "$impl_cmd" == "agent --trust --output-format text --model auto" ]] &&
+if [[ "$impl_cmd" == "agent --trust --output-format text --force --model auto" ]] &&
    [[ "$plan_cmd" == "agent --trust --output-format text --mode plan --model auto" ]]; then
     test_pass
 else

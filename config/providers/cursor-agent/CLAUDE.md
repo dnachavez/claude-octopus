@@ -63,7 +63,7 @@ Octopus opts down by role. `OCTOPUS_CURSOR_AGENT_MODE` overrides the table.
 |------|------|------|
 | research, review, council, verifier, synthesizer, anything else | `ask` | `--mode ask` (read-only Q&A) |
 | `planner`, `architect`, `strategist` | `plan` | `--mode plan` (read-only planning) |
-| `implementer`, `developer`, `implementer-heavy` | `agent` | none (full tool access) |
+| `implementer`, `developer`, `implementer-heavy` | `agent` | `--force` (full unattended tool access) |
 
 An invalid override logs an error and keeps the role default.
 
