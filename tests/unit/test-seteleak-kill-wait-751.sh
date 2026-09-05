@@ -121,28 +121,23 @@ test_heartbeat_kill_lines_guarded() {
     fi
 }
 
-# cursor-agent.sh:55-56 — _cursor_agent_run_with_timeout()'s fallback path.
-# Unlike the other four sites, `wait "$cmd_pid"` here feeds `exit_code=$?`:
-# a blind `|| true` would silently zero out the real exit code, so the fix
-# uses `exit_code=0; wait ... || exit_code=$?` instead. Assert both halves:
-# no abort under set -e, and the captured code is still correct.
-test_cursor_agent_preserves_exit_code_and_survives_sete() {
-    test_case "cursor-agent.sh: fallback wait preserves the wrapped command's exit code without aborting under set -e"
+# Cursor delegates timeout ownership to heartbeat.sh instead of maintaining a
+# second watchdog. The adapter must preserve the shared helper's arguments and
+# exit status under the repository's set -e execution mode.
+test_cursor_agent_delegates_timeout_and_survives_sete() {
+    test_case "cursor-agent.sh: timeout adapter delegates to the shared portable supervisor"
 
     local out
     out=$(
         bash -c '
             set -eo pipefail
             source "'"$PROJECT_ROOT"'/scripts/lib/cursor-agent.sh"
-            fails_with_7() { return 7; }
-            # Force the in-process fallback (skip gtimeout/timeout) by
-            # emptying PATH so neither resolves; everything the fallback
-            # itself needs is a builtin, a shell function, or an absolute
-            # path (/bin/sleep, /bin/rm), matching the code path the fix targets.
-            # Capture via `|| rc=$?` so this test harness does not itself
-            # trip set -e on the (expected, non-zero) return value.
+            run_with_timeout() {
+                printf "SHARED_ARGS=%s\n" "$*"
+                return 7
+            }
             rc=0
-            PATH="" _cursor_agent_run_with_timeout 0.2 fails_with_7 </dev/null || rc=$?
+            _cursor_agent_run_with_timeout 9 agent --version </dev/null || rc=$?
             echo "RC=$rc"
             echo REACHED-END
         ' 2>&1
@@ -150,8 +145,10 @@ test_cursor_agent_preserves_exit_code_and_survives_sete() {
 
     assert_contains "$out" "REACHED-END" \
         "_cursor_agent_run_with_timeout must not abort under set -e" || return
+    assert_contains "$out" "SHARED_ARGS=--portable-supervisor 9 agent --version" \
+        "_cursor_agent_run_with_timeout must delegate to the shared supervisor" || return
     assert_contains "$out" "RC=7" \
-        "_cursor_agent_run_with_timeout must still return the wrapped command's real exit code (7), not silently become 0 (proves exit_code=0; wait ... || exit_code=\$? preserves the value, unlike a blind || true)" || return
+        "_cursor_agent_run_with_timeout must preserve the shared helper's exit status" || return
     test_pass
 }
 
@@ -160,6 +157,6 @@ test_guarded_kill_wait_survives_sete
 test_workflows_synthesis_monitor_guarded
 test_heartbeat_run_with_timeout_survives_early_exit_race
 test_heartbeat_kill_lines_guarded
-test_cursor_agent_preserves_exit_code_and_survives_sete
+test_cursor_agent_delegates_timeout_and_survives_sete
 
 test_summary

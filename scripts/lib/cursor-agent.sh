@@ -20,6 +20,12 @@ _cursor_log() {
 # Source-safe: no main execution block.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+_cursor_agent_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+if ! declare -f run_with_timeout >/dev/null 2>&1; then
+    # shellcheck source=/dev/null
+    source "${_cursor_agent_lib_dir}/heartbeat.sh" 2>/dev/null || true
+fi
+
 # Cursor Agent CLI binary identity check
 #
 # Version format: CalVer (YYYY.MM.DD-hash), e.g. "2026.04.14-ee4b43a"
@@ -36,42 +42,14 @@ _cursor_agent_run_with_timeout() {
     local timeout_secs="$1"
     shift
 
-    if command -v gtimeout &>/dev/null; then
-        gtimeout "$timeout_secs" "$@"
-        return $?
+    if ! declare -f run_with_timeout >/dev/null 2>&1; then
+        _cursor_log ERROR "cursor-agent: shared timeout supervisor unavailable"
+        return 1
     fi
-    if command -v timeout &>/dev/null; then
-        timeout "$timeout_secs" "$@"
-        return $?
-    fi
-
-    local output_file="${TMPDIR:-/tmp}/cursor-agent-timeout.$$.$RANDOM.out"
-    local cmd_pid monitor_pid exit_code
-    : > "$output_file" || return 1
-
-    "$@" >"$output_file" 2>&1 <&0 &
-    cmd_pid=$!
-    # The watchdog must not inherit our stdio: a caller's command substitution
-    # would otherwise stay open until the monitor's sleeps finish, even after a
-    # fast command has already returned (same fix as the agy helper).
-    ( /bin/sleep "$timeout_secs"; kill -TERM "$cmd_pid" 2>/dev/null; /bin/sleep 1; kill -KILL "$cmd_pid" 2>/dev/null ) >/dev/null 2>&1 </dev/null &
-    monitor_pid=$!
-
-    exit_code=0
-    wait "$cmd_pid" 2>/dev/null || exit_code=$?
-
-    kill "$monitor_pid" 2>/dev/null || true
-    wait "$monitor_pid" 2>/dev/null || true
-
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        printf '%s\n' "$line"
-    done < "$output_file"
-    /bin/rm -f "$output_file" 2>/dev/null || true
-
-    if [[ $exit_code -eq 137 || $exit_code -eq 143 ]]; then
-        return 124
-    fi
-    return "$exit_code"
+    # Always use the shared private-process-group path. A short-lived Cursor
+    # command can leave descendants holding stdout after its main PID exits;
+    # the portable supervisor contains and reaps that complete process group.
+    run_with_timeout --portable-supervisor "$timeout_secs" "$@"
 }
 
 _is_cursor_agent_binary() {

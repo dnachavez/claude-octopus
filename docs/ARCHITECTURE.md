@@ -6,7 +6,7 @@ This document explains how Claude Octopus orchestrates multiple AI providers and
 
 ## Overview
 
-Claude Octopus coordinates **eleven external AI integrations** alongside its built-in Claude host to give you multi-perspective analysis. The diagram shows the representative execution path; the full roster follows it.
+Claude Octopus coordinates **twelve external AI integrations** alongside its built-in Claude host to give you multi-perspective analysis. The diagram shows the representative execution path; the full roster follows it.
 
 ```
     +------------------+

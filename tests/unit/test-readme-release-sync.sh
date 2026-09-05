@@ -95,7 +95,7 @@ text = readme.read_text()
 text = re.sub(r"Version-\d+\.\d+\.\d+-blue", "Version-0.0.0-blue", text)
 text = re.sub(r"Version \d+\.\d+\.\d+", "Version 0.0.0", text)
 text = text.replace(
-    "supports eleven external provider integrations",
+    "supports twelve external provider integrations",
     "supports eight external provider integrations",
     1,
 )
@@ -126,7 +126,7 @@ plugin_readme.write_text(plugin_text)
 product = root / "PRODUCT.md"
 product_text = product.read_text()
 product_text = product_text.replace(
-    "up to 11 external AI integrations",
+    "up to 12 external AI integrations",
     "up to 8 AI CLIs",
 )
 # Any historical count line must normalise back to the stable phrase, so an

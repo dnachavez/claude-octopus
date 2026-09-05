@@ -97,7 +97,7 @@ Cursor serves as:
   logic, security, or diversity review seats and the debate slot when
   Antigravity or Codex is unavailable
 - **Research perspective** — "Cursor Perspective" in dynamic research fleets
-- **Implementer** — only when the role is implementer/developer (full agent mode)
+- **Implementer** — only when the role is implementer/developer (`--force`)
 
 ## Timeouts
 

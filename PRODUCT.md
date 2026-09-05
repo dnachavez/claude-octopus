@@ -8,7 +8,7 @@ last_reviewed: 2026-08-30
 
 ## Mission
 
-Make up to 11 external AI integrations available for explicit escalation, so blind spots surface on the work that warrants multi-model scrutiny without taxing every ordinary task.
+Make up to 12 external AI integrations available for explicit escalation, so blind spots surface on the work that warrants multi-model scrutiny without taxing every ordinary task.
 
 ## Vision
 
@@ -37,7 +37,7 @@ Claude Octopus is a **multi-runtime orchestration plugin** with three architectu
 
 | Layer | What it does | Gap it closes |
 |-------|-------------|---------------|
-| **Provider adapters** (`scripts/orchestrate.sh`, `bin/check-providers.sh`) | Detects, authenticates, and dispatches to up to 11 external AI integrations | Eliminates manual per-provider boilerplate |
+| **Provider adapters** (`scripts/orchestrate.sh`, `bin/check-providers.sh`) | Detects, authenticates, and dispatches to up to 12 external AI integrations | Eliminates manual per-provider boilerplate |
 | **Workflow engine** (`skills/`) | Structures every task into Discover → Define → Develop → Deliver with quality gates | Stops ad-hoc "just ask Claude" from shipping low-confidence output |
 | **Consensus layer** | 75% gate: flags disagreements across providers before code is finalized | The actual blind-spot catcher — surfaces the 1-in-5 case where Claude was wrong |
 
@@ -45,9 +45,9 @@ Claude Octopus is a **multi-runtime orchestration plugin** with three architectu
 
 ## Core Value Propositions
 
-- **Blind spot elimination:** Any model can be wrong; 11 external integrations rarely agree on the same wrong answer
+- **Blind spot elimination:** Any model can be wrong; 12 external integrations rarely agree on the same wrong answer
 - **Zero-friction escalation:** Claude-native for ordinary tasks, Octopus for anything that deserves a second opinion
-- **Four providers can cost nothing extra when you already have access:** Codex (OAuth), Antigravity CLI, Copilot (GitHub subscription), and Ollama (local) — Qwen now requires API-key or Coding-Plan auth, while Perplexity and OpenRouter are metered
+- **Five providers can cost nothing extra when you already have access:** Codex (OAuth), Antigravity CLI, Copilot (GitHub subscription), Cursor CLI (Cursor subscription), and Ollama (local) — Qwen now requires API-key or Coding-Plan auth, while Perplexity and OpenRouter are metered
 - **Dark Factory autonomy:** Spec in, software out — full Discover→Define→Develop→Deliver pipeline without step-by-step prompting
 - **Opinionated four-phase methodology:** Infrastructure plus the workflow that uses it correctly
 

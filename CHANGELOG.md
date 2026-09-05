@@ -22,11 +22,11 @@
   credential isolation with `OCTOPUS_ALLOW_FULL_CURSOR_AGENT_ENV` opt-out, a
   curated catalog of current `agent models` IDs, and a
   `config/providers/cursor-agent/CLAUDE.md` module. Public documentation now
-  lists eleven external providers.
+  lists twelve external providers.
 - `OCTOPUS_CURSOR_AGENT_MODE=ask|plan|agent` controls Cursor tool access.
   `agent -p` otherwise has write and shell access, so dispatch is read-only
-  (`--mode ask`) by default, `--mode plan` for planner roles, and full agent
-  mode only for implementer roles or an explicit override.
+  (`--mode ask`) by default, `--mode plan` for planner roles, and `--force`
+  only for implementer roles or an explicit override.
 
 ### Changed
 
